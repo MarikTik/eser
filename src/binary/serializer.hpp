@@ -1,5 +1,5 @@
 /**
-* @file binary_serializer.hpp
+* @file serializer.hpp
 * @brief Provides a serialization utility class for converting objects and arrays into byte streams.
 *
 * This file defines the `ser::binary::serializer` class template, which allows efficient serialization
@@ -206,6 +206,6 @@ namespace ser::binary{
     
 } // namespace scr::utils
 
-#include "binary_serializer.tpp"
+#include "serializer.tpp"
 
 #endif // SER_BINARY_SERIALIZER_HPP_

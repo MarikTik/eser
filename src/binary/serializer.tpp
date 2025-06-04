@@ -1,6 +1,6 @@
-#ifndef SER_SERIALIZER_TPP_
-#define SER_SERIALIZER_TPP_
-#include "binary_serializer.hpp"
+#ifndef SER_BINARY_SERIALIZER_TPP_
+#define SER_BINARY_SERIALIZER_TPP_
+#include "serializer.hpp"
 #include "traits.hpp"
 #include <string_view>
 namespace ser::binary{
@@ -102,7 +102,7 @@ namespace ser::binary{
                     return 0;
                 }
                 else {
-                    static_assert(utils::templates::always_false_v<T>, "Unsupported type for constexpr serialized size calculation.");
+                    static_assert(ser::traits::always_false_v<T>, "Unsupported type for constexpr serialized size calculation.");
                     return 0;
                 }
         }
@@ -141,4 +141,4 @@ namespace ser::binary{
     }
 } // namespace scr::utils
     
-#endif // SER_SERIALIZER_TPP_
+#endif // SER_BINARY_SERIALIZER_TPP_

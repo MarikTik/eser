@@ -1,6 +1,6 @@
 #ifndef SER_BINARY_DESERIALIZER_TPP_
 #define SER_BINARY_DESERIALIZER_TPP_
-#include "binary_deserializer.hpp"
+#include "deserializer.hpp"
 #include <cassert>
 #include <utility>
 #include <array>

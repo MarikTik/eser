@@ -1,8 +1,8 @@
 /**
-* @file binary_deserializer.hpp
+* @file deserializer.hpp
 * @brief Provides a deserialization utility for reconstructing objects and arrays from byte streams.
 *
-* This file defines the `ser::utils::deserializer` class, which allows efficient deserialization
+* This file defines the `ser::binary::deserializer` class, which allows efficient deserialization
 * of data from a byte array into standard C++ types such as integers, floating-point numbers,
 * and arrays. The deserialization process assumes little-endian encoding.
 *
@@ -149,6 +149,6 @@ namespace ser::binary{
     }
 } // namespace ser::binary
 
-#include "binary_deserializer.tpp"
+#include "deserializer.tpp"
 
 #endif // SER_BINARY_DESERIALIZER_HPP_
