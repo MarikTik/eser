@@ -4,7 +4,7 @@
 #include <cassert>
 #include <utility>
 #include <array>
-
+#include <cstring>
 namespace ser::binary{
     template <typename... T, std::enable_if_t<(sizeof...(T) > 1), bool>>
     inline std::tuple<std::conditional_t<std::is_array_v<T>, std::array<std::remove_extent_t<T>, std::extent_v<T>>, T>...> 
