@@ -26,8 +26,9 @@ endif()
 # ---------------------------------
 # Add testing toggle
 # ---------------------------------
-include(CTest)  # adds BUILD_TESTING option automatically
-
-if(BUILD_TESTING)
-    add_subdirectory(tests)
+if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+    include(CTest)  # adds BUILD_TESTING option automatically
+    if(BUILD_TESTING)
+        add_subdirectory(tests)
+    endif()
 endif()
