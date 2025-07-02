@@ -1,5 +1,6 @@
 /**
 * @file utils.hpp
+* @ingroup ser_tools
 * @brief Provides compile-time utilities for serialization size calculation.
 *
 * This header defines type traits and utility functions to compute the

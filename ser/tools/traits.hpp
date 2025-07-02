@@ -1,5 +1,6 @@
 /**
 * @file traits.hpp
+* @ingroup ser_tools
 * @brief Provides custom type traits for template metaprogramming.
 *
 * This file defines additional type traits outside of the C++ standard library.
