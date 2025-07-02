@@ -1,9 +1,8 @@
 /**
 * @file tools.hpp
-* @brief Aggregator header for all utilities in `ser/tools/`.
-*
 * @defgroup ser_tools Serialization Tools
-* @brief Utility components for the `ser` serialization library.
+* @ingroup ser
+* @brief Aggregator header for all utilities in `ser/tools/`.
 *
 * The `ser_tools` group includes:
 * - Fallbacks like `byte.hpp` for missing standard library types
