@@ -104,8 +104,8 @@
          otherwise compilation will fail.")
 
     /**
-    * If you don't have `<cstddef>`, you can define `std::byte` here instead. But honestly it's 
-    * better to use a better toolchain.
+    * If you don't have `<cstddef>` in general, you should not use this library, as many of its components rely
+    * on cstddef components (std::byte, std::size_t, etc.).
     */
     #include <cstddef> // this will cause an error if <cstddef> is not available
 
