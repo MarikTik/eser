@@ -1,6 +1,6 @@
 #include <catch2/catch_all.hpp>
-#include "binary/serializer.hpp"
-#include "binary/deserializer.hpp"
+#include "ser/binary/serializer.hpp"
+#include "ser/binary/deserializer.hpp"
 #include <limits>
 #include <cstdint>
 using namespace ser::binary;
