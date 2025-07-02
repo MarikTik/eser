@@ -14,7 +14,7 @@ add_library(ser INTERFACE)
 
 # Public include directory
 target_include_directories(ser INTERFACE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 )
 
 # Compiler warnings for consumer projects
