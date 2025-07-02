@@ -58,7 +58,6 @@
 * when used concurrently on the same instance.
 * @note The deserializer invalidates itself as it consumes bytes from the input stream.
 */
-
 #ifndef SER_BINARY_BINARY_HPP_
 #define SER_BINARY_BINARY_HPP_
 #include "serializer.hpp"

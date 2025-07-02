@@ -12,8 +12,9 @@
 #ifndef SER_BINARY_DESERIALIZER_HPP_
 #define SER_BINARY_DESERIALIZER_HPP_
 
-#include <cstdint>
+#include "../tools/byte.hpp"
 #include <cstddef>
+#include <cstdint>
 #include <type_traits>
 #include <tuple>
 #include <array>
@@ -31,7 +32,7 @@ namespace ser::binary{
     * so full deserialization invalidates the deserializer object. 
     */
     class deserializer{
-        public:
+    public:
         /**
         * @brief Deserialize multiple values from the byte stream.
         *
@@ -45,8 +46,7 @@ namespace ser::binary{
         * length is insufficient.
         */
         template<typename ...T, std::enable_if_t<(sizeof...(T) > 1), bool> = true>
-        std::tuple<std::conditional_t<std::is_array_v<T>, std::array<std::remove_extent_t<T>, std::extent_v<T>>, T>...> 
-        to();
+        [[nodiscard]] std::tuple<std::conditional_t<std::is_array_v<T>, std::array<std::remove_extent_t<T>, std::extent_v<T>>, T>...> to();
         
         /**
         * @brief Deserialize a single array from the byte stream.
@@ -59,8 +59,7 @@ namespace ser::binary{
         * @note In release mode, the method will fill the remaining array elements with zeros if the data
         */
         template <typename Vector, std::enable_if_t<std::is_array_v<Vector>, bool> = true>
-        std::array<std::remove_extent_t<Vector>, std::extent_v<Vector>> 
-        to(); 
+        [[nodiscard]] std::array<std::remove_extent_t<Vector>, std::extent_v<Vector>> to(); 
         
         /**
         * @brief Deserialize a single value from the byte stream.
@@ -72,10 +71,10 @@ namespace ser::binary{
         * @throws Assertion failure if the byte stream does not contain sufficient data for the value.
         */
         template<typename Scalar, std::enable_if_t<std::is_scalar_v<Scalar>, bool> = true>
-        Scalar to();
+        [[nodiscard]] Scalar to();
         
-        private:
-        const std::uint8_t *_data;    ///< Pointer to the byte stream.
+    private:
+        const std::byte *_data;       ///< Pointer to the byte stream.
         std::size_t _length;          ///< Length of the remaining data in the byte stream.
         
         /**
@@ -87,7 +86,7 @@ namespace ser::binary{
         * @param length Length of the byte stream.
         * @return A `deserializer` instance.
         */
-        friend constexpr deserializer deserialize(const std::uint8_t *data, std::size_t length);
+        friend constexpr deserializer deserialize(const std::byte *data, std::size_t length);
         
         /**
         * @brief Internal method to deserialize a single value.
@@ -118,7 +117,7 @@ namespace ser::binary{
         * @param data Pointer to the byte stream.
         * @param length Length of the byte stream.
         */
-        constexpr explicit deserializer(const std::uint8_t *data, std::size_t length);
+        constexpr explicit deserializer(const std::byte *data, std::size_t length);
     };
     
     /**
@@ -132,7 +131,7 @@ namespace ser::binary{
     * @throws Assertion failure if the byte stream pointer is null.
     * @note The function does not take ownership of the byte stream.
     */
-    constexpr deserializer deserialize(const std::uint8_t *data, std::size_t length);
+    constexpr deserializer deserialize(const std::byte *data, std::size_t length);
     
     /**
     * @brief Create a deserializer instance from a compile time byte array.
@@ -143,6 +142,55 @@ namespace ser::binary{
     * @note The function does not take ownership of the byte array.
     */
     template <size_t N>
+    constexpr deserializer deserialize(const std::byte (&data)[N])
+    {
+        return deserialize(data, N);
+    }
+
+    /**
+    * @brief Create a deserializer instance from a `uint8_t` byte array.
+    *
+    * This overload allows constructing a `deserializer` from a byte stream
+    * represented as a `const uint8_t*` pointer, for backwards compatibility
+    * with existing codebases that use `uint8_t` to represent raw byte data.
+    *
+    * Internally, this function forwards the call to the main `std::byte` overload.
+    *
+    * @param data Pointer to the byte stream, represented as `const uint8_t*`.
+    * @param length The length of the byte stream in bytes.
+    * @return A `deserializer` instance initialized with the provided byte stream.
+    *
+    * @throws Assertion failure if the byte stream pointer is null.
+    *
+    * @note This function does not take ownership of the byte stream memory.
+    * @note Prefer passing `std::byte*` to new code for clarity and modern C++17 compliance.
+    *
+    * @see deserialize(const std::byte*, std::size_t)
+    */
+    constexpr deserializer deserialize(const std::uint8_t *data, std::size_t length);
+
+    /**
+    * @brief Create a deserializer instance from a compile-time `uint8_t` byte array.
+    *
+    * This overload allows constructing a `deserializer` from a byte array
+    * declared as a fixed-size `uint8_t` array, ensuring compatibility with
+    * codebases that still use `uint8_t` as a byte representation.
+    *
+    * Internally, this function forwards the call to the main `std::byte` overload.
+    *
+    * @tparam N The size of the byte array.
+    * @param data Reference to a compile-time `uint8_t` byte array.
+    * @return A `deserializer` instance initialized with the provided byte array.
+    *
+    * @throws Assertion failure if the byte array pointer is null.
+    *
+    * @note This function does not take ownership of the byte array memory.
+    * @note Prefer passing `std::byte` arrays to new code for clarity and modern C++17 compliance.
+    *
+    * @see deserialize(const std::byte*, std::size_t)
+    * @see deserialize(const std::byte(&)[N])
+    */
+    template <size_t N>
     constexpr deserializer deserialize(const std::uint8_t (&data)[N])
     {
         return deserialize(data, N);
@@ -150,5 +198,4 @@ namespace ser::binary{
 } // namespace ser::binary
 
 #include "deserializer.tpp"
-
 #endif // SER_BINARY_DESERIALIZER_HPP_

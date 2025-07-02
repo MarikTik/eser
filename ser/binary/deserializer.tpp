@@ -70,15 +70,19 @@ namespace ser::binary{
         return value;
     }
     
-    constexpr deserializer::deserializer(const std::uint8_t *data, std::size_t length)
+    constexpr deserializer::deserializer(const std::byte *data, std::size_t length)
     : _data(data), _length(length)
     {
     }
     
-    constexpr deserializer deserialize(const std::uint8_t *data, std::size_t length)
+    constexpr deserializer deserialize(const std::byte *data, std::size_t length)
     {
         assert(data != nullptr && "Data pointer is null");
         return deserializer(data, length);
+    }
+    constexpr deserializer deserialize(const std::uint8_t *data, std::size_t length)
+    {
+        return deserialize(static_cast<const std::byte *>(static_cast<const void *>(data)), length);
     }
 } // namespace ser::binary
 
