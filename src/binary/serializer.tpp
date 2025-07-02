@@ -1,7 +1,7 @@
 #ifndef SER_BINARY_SERIALIZER_TPP_
 #define SER_BINARY_SERIALIZER_TPP_
 #include "serializer.hpp"
-#include "traits.hpp"
+#include "../traits.hpp"
 #include <string_view>
 namespace ser::binary{
     namespace __details{
