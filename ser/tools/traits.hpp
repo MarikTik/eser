@@ -27,7 +27,7 @@ namespace ser::traits {
     * and `std::is_same_v`.
     *
     * The result is accessible via the `::value` member or via the `is_unique_v` alias.
-    *
+    *q
     * @tparam Ts The parameter pack of types to check for uniqueness.
     *
     * @note This trait is useful when implementing compile-time type sets or constraints where
