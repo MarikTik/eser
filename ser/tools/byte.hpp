@@ -100,8 +100,7 @@
     * This block assumes `<cstddef>` is present, as there’s no portable
     * way to check header existence without `__has_include`.
     */
-    #pragma message("[ser] Compiler does not support __has_include. Assuming <cstddef> is available,
-         otherwise compilation will fail.")
+    #pragma message("[ser] Compiler does not support __has_include. Assuming <cstddef> is available, otherwise compilation will fail.")
 
     /**
     * If you don't have `<cstddef>` in general, you should not use this library, as many of its components rely
