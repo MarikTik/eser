@@ -153,7 +153,7 @@ TEST_CASE("Serialize enum values") {
 
 TEST_CASE("Serialize C-string") {
     zero_buffer();
-    const char* str = "TestingString";
+    const char str[] = "TestingString";
     serialize(str).to(buffer, BUFFER_SIZE);
     for (size_t i = 0; i <= strlen(str); ++i)
         REQUIRE(buffer[i] == static_cast<std::uint8_t>(str[i]));
