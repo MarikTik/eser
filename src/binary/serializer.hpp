@@ -85,28 +85,6 @@ namespace ser::binary{
         > = true
         >
         std::size_t serialize_impl(std::uint8_t *&buffer, std::size_t &size, const Struct &str);
-        
-        /**
-        * @brief Internal method to serialize a C-style string.
-        *
-        * This method serializes a C-style string into the byte stream.
-        *
-        * @param buffer A pointer to the output byte stream.
-        * @param size The remaining size of the output buffer.
-        * @param str A null-terminated C-style string to serialize.
-        * @return The number of bytes written to the buffer.
-        */
-        inline std::size_t serialize_impl(std::uint8_t *&buffer, std::size_t &size, const char *str);
-        
-        /**
-        * @brief Internal method to serialize an individual item in some kind of sequence.
-        * 
-        * @tparam T The type of the item to serialize.
-        * @param item A `const` reference to the item to serialize.
-        * @return The number of bytes required to serialize the item.
-        */
-        template <typename T>
-        constexpr std::size_t individual_serialized_size(const T& item);
     }
     /**
     * @class serializer
@@ -117,7 +95,7 @@ namespace ser::binary{
     */
     template<typename ...T>
     class serializer{
-        public:
+    public:
         /**
         * @brief Serialize multiple values into the byte stream.
         *
@@ -141,27 +119,7 @@ namespace ser::binary{
         template<size_t N>
         std::size_t to(std::uint8_t(&buffer)[N]) const;
         
-        
-        /**
-        * @brief Calculates the total serialized size of the held arguments at compile time.
-        *
-        * Determines the number of bytes required to serialize all the arguments stored
-        * within this serializer instance. Uses logic consistent with the `to()` method.
-        *
-        * @return `constexpr std::size_t` The total size in bytes required for serialization.
-        * @note This function is `constexpr`.
-        * @warning Requires C++20 for full constexpr support if string literals are used
-        * (due to potential internal reliance on constexpr std::char_traits).
-        * Does **not** support runtime `const char*` arguments for size calculation
-        * pre-C++23 because `std::strlen` is not `constexpr`. Use fixed-size
-        * char arrays (`const char x[] = "..."`) or `std::string_view`.
-        * For the purposes of this project avoid using `std::string` and `std::string_view` and `const char*`.
-        * @throws Compile-time error via `static_assert` for unsupported types.
-        */
-        constexpr std::size_t size() const;
-        
-        
-        private:
+    private:
         std::tuple<T...> _args; ///< A tuple containing the values to serialize.
         
         
@@ -204,7 +162,7 @@ namespace ser::binary{
         return serializer<T...>(std::forward<T>(args)...);
     }
     
-} // namespace scr::utils
+} // ser::binary
 
 #include "serializer.tpp"
 
