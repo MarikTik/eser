@@ -1,5 +1,6 @@
 /**
 * @file deserializer.hpp
+* @ingroup ser_binary
 * @brief Provides a deserialization utility for reconstructing objects and arrays from byte streams.
 *
 * This file defines the `ser::binary::deserializer` class, which allows efficient deserialization
@@ -8,6 +9,12 @@
 *
 * @note The deserializer is not thread-safe.
 * @note Currently supports only little-endian transformations.
+* @author Mark Tikhonov <mtik.philosopher@gmail.com>
+* @date 2025-07-02
+* @copyright
+* Creative Commons Attribution-NoDerivatives 4.0 International Public License
+* See https://creativecommons.org/licenses/by-nd/4.0/
+* SPDX-License-Identifier: CC-BY-ND-4.0
 */
 #ifndef SER_BINARY_DESERIALIZER_HPP_
 #define SER_BINARY_DESERIALIZER_HPP_

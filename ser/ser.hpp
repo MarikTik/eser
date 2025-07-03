@@ -49,8 +49,12 @@
 *
 * @note All serialization in the binary module assumes little-endian encoding.
 *
-* @author Mark Tikhonov 
+* @author Mark Tikhonov <mtik.philosopher@gmail.com>
 * @date Jul 2 2025
+* @copyright
+* Creative Commons Attribution-NoDerivatives 4.0 International Public License
+* See https://creativecommons.org/licenses/by-nd/4.0/
+* SPDX-License-Identifier: CC-BY-ND-4.0
 */
 #ifndef SER_HPP_
 #define SER_HPP_

@@ -12,6 +12,13 @@
 * @note The serializer is not thread-safe if multiple threads call `.to()` on the same instance
 * with overlapping buffers (though instances themselves are usually short-lived).
 * @note Currently supports only little-endian transformations for multi-byte types.
+*
+* @author Mark Tikhonov <mtik.philosopher@gmail.com>
+* @date 2025-07-02
+* @copyright
+* Creative Commons Attribution-NoDerivatives 4.0 International Public License
+* See https://creativecommons.org/licenses/by-nd/4.0/
+* SPDX-License-Identifier: CC-BY-ND-4.0
 */
 #ifndef SER_BINARY_SERIALIZER_HPP_
 #define SER_BINARY_SERIALIZER_HPP_

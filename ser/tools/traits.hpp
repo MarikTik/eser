@@ -11,6 +11,12 @@
 * with standard traits and other libraries.
 * 
 * @warning This file is intended to use on platforms supporting C++17 standard or later.
+* @author Mark Tikhonov <mtik.philosopher@gmail.com>
+* @date 2025-07-02
+* @copyright
+* Creative Commons Attribution-NoDerivatives 4.0 International Public License
+* See https://creativecommons.org/licenses/by-nd/4.0/
+* SPDX-License-Identifier: CC-BY-ND-4.0
 */
 
 #ifndef SER_TRAITS_HPP_

@@ -11,6 +11,12 @@
 *
 * @note This header is designed for extension and may include additional
 *       utilities in the future.
+* @author Mark Tikhonov <mtik.philosopher@gmail.com>
+* @date 2025-07-02
+* @copyright
+* Creative Commons Attribution-NoDerivatives 4.0 International Public License
+* See https://creativecommons.org/licenses/by-nd/4.0/
+* SPDX-License-Identifier: CC-BY-ND-4.0
 */
 
 #ifndef SER_TOOLS_UTILS_HPP_
@@ -21,7 +27,7 @@
 
 namespace ser::tools
 {
-  
+    
     /**
     * @brief Computes the serialized size (in bytes) of a single type T.
     *
@@ -65,37 +71,37 @@ namespace ser::tools
                 "Runtime const char* cannot be used for compile-time size calculation. "
                 "Use fixed-size char arrays or std::string_view instead.");
                 return 0;
-        }
-        else {
-            static_assert(traits::always_false_v<bare_t>,
-                "Unsupported type for serialization size calculation.");
-            return 0;
-        }
-    }
-     
-    /**
-    * @brief Computes the total serialized size (in bytes) of multiple types.
-    *
-    * Computes, at compile time, how many bytes would be required
-    * to serialize a sequence of types T... into a binary stream.
-    *
-    * This function aggregates the individual sizes of each type.
-    *
-    * @tparam T... The types whose total serialized size is to be computed.
-    * @return The total size in bytes required to serialize all types in T...
-    *
-    * @note This function is constexpr and evaluates entirely at compile time
-    *       for supported types.
-    *
-    * @see serialized_size_of<T>()
-    */
-    template<typename... T, std::enable_if_t<(sizeof...(T) > 1), bool> = true>
-    constexpr std::size_t serialized_size_of()
-    {
-        return (... + serialized_size_of<T>());
-    }
-         
-} // namespace ser::tools
+            }
+            else {
+                static_assert(traits::always_false_v<bare_t>,
+                    "Unsupported type for serialization size calculation.");
+                    return 0;
+                }
+            }
+            
+            /**
+            * @brief Computes the total serialized size (in bytes) of multiple types.
+            *
+            * Computes, at compile time, how many bytes would be required
+            * to serialize a sequence of types T... into a binary stream.
+            *
+            * This function aggregates the individual sizes of each type.
+            *
+            * @tparam T... The types whose total serialized size is to be computed.
+            * @return The total size in bytes required to serialize all types in T...
+            *
+            * @note This function is constexpr and evaluates entirely at compile time
+            *       for supported types.
+            *
+            * @see serialized_size_of<T>()
+            */
+            template<typename... T, std::enable_if_t<(sizeof...(T) > 1), bool> = true>
+            constexpr std::size_t serialized_size_of()
+            {
+                return (... + serialized_size_of<T>());
+            }
+            
+        } // namespace ser::tools
         
-#endif // SER_TOOLS_UTILS_HPP_
+        #endif // SER_TOOLS_UTILS_HPP_
         

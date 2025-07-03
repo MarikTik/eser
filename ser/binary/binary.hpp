@@ -57,6 +57,12 @@
 * @note The serialization and deserialization classes are not thread-safe
 * when used concurrently on the same instance.
 * @note The deserializer invalidates itself as it consumes bytes from the input stream.
+* @author Mark Tikhonov <mtik.philosopher@gmail.com>
+* @date 2025-07-02
+* @copyright
+* Creative Commons Attribution-NoDerivatives 4.0 International Public License
+* See https://creativecommons.org/licenses/by-nd/4.0/
+* SPDX-License-Identifier: CC-BY-ND-4.0
 */
 #ifndef SER_BINARY_BINARY_HPP_
 #define SER_BINARY_BINARY_HPP_

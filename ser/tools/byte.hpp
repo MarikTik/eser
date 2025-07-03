@@ -30,7 +30,15 @@
 *
 * Users are strongly encouraged to ensure proper C++17 toolchain support
 * instead of relying on this fallback.
+
+* @author Mark Tikhonov <mtik.philosopher@gmail.com>
+* @date 2025-07-02
+* @copyright
+* Creative Commons Attribution-NoDerivatives 4.0 International Public License
+* See https://creativecommons.org/licenses/by-nd/4.0/
+* SPDX-License-Identifier: CC-BY-ND-4.0
 */
+
 
 #ifndef SER_TOOLS_BYTE_HPP_
 #define SER_TOOLS_BYTE_HPP_
