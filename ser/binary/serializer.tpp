@@ -16,7 +16,7 @@
 namespace ser::binary{
     namespace __details{
         template <typename Vector, std::enable_if_t<std::is_array_v<Vector>, bool>>
-        std::size_t serialize_impl(std::uint8_t *&buffer, std::size_t &size, const Vector& vector)
+        std::size_t serialize_impl(std::byte *&buffer, std::size_t &size, const Vector& vector)
         {    
             //assert(size >= sizeof(Vector) && "Buffer size potentially insufficient for the entire array");
             using type = std::remove_extent_t<Vector>;
@@ -36,18 +36,18 @@ namespace ser::binary{
         }
         
         template<typename Scalar, std::enable_if_t<std::is_arithmetic_v<Scalar>, bool>>
-        std::size_t serialize_impl(std::uint8_t *&buffer, std::size_t &size, Scalar scalar)
+        std::size_t serialize_impl(std::byte *&buffer, std::size_t &size, Scalar scalar)
         {
             constexpr std::size_t scalar_size = sizeof(Scalar);
             //assert(scalar_size <= size && "Buffer size is insufficient for the scalar value");
             // if (size < scalar_size) {// possible error handling here}
-            std::memcpy(buffer, &scalar, scalar_size);
+            std::memcpy(static_cast<void*>(buffer), &scalar, scalar_size);
             buffer += scalar_size, size -= scalar_size;
             return scalar_size;
         }
         
         template<typename Enum, std::enable_if_t<std::is_enum_v<Enum>, bool>>
-        std::size_t serialize_impl(std::uint8_t *&buffer, std::size_t &size, Enum enum_member)
+        std::size_t serialize_impl(std::byte *&buffer, std::size_t &size, Enum enum_member)
         {
             return serialize_impl(buffer, size, static_cast<std::underlying_type_t<Enum>>(enum_member));
         }
@@ -59,26 +59,26 @@ namespace ser::binary{
         std::is_trivially_copyable_v<Struct>, bool
         > 
         >
-        std::size_t serialize_impl(std::uint8_t *&buffer, std::size_t &size, const Struct &str){
+        std::size_t serialize_impl(std::byte *&buffer, std::size_t &size, const Struct &str){
             constexpr std::size_t struct_size = sizeof(Struct);
             //assert(struct_size <= size && "Buffer size is insufficient for the struct");
-            std::memcpy(buffer, &str, struct_size);
+            std::memcpy(static_cast<void*>(buffer), &str, struct_size);
             buffer += struct_size, size -= struct_size;
             return struct_size;
         }
         
-        inline std::size_t serialize_impl(std::uint8_t *&buffer, std::size_t &size, const char *str)
+        inline std::size_t serialize_impl(std::byte *&buffer, std::size_t &size, const char *str)
         {
             std::size_t length = std::strlen(str) + 1; // +1 for null terminator (The string MUST be null-terminated)
             //assert(size >= length && "Buffer size is insufficient for the string");
-            std::memcpy(buffer, str, length);
+            std::memcpy(static_cast<void*>(buffer), str, length);
             buffer += length, size -= length;
             return length;
         }
     } // namespace __details
     
     template <typename... T>
-    inline std::size_t serializer<T...>::to (std::uint8_t *buffer, std::size_t size) const
+    inline std::size_t serializer<T...>::to (std::byte *buffer, std::size_t size) const
     {
         using namespace __details;
         constexpr std::size_t needed = tools::serialized_size_of<T...>();
@@ -90,14 +90,26 @@ namespace ser::binary{
             return (... + serialize_impl(buffer, size, args));
         }, _args);
     }
-    
+
+    template <typename... T>
+    std::size_t serializer<T...>::to(std::uint8_t *buffer, std::size_t size) const
+    {
+        return to(static_cast<std::byte *>(static_cast<void*>(buffer)), size);
+    }
     template <typename... T>
     template <size_t N>
-    inline std::size_t serializer<T...>::to(std::uint8_t (&buffer)[N]) const
+    inline std::size_t serializer<T...>::to(std::byte (&buffer)[N]) const
     {
         return to(buffer, N);
     }
-    
+
+    template <typename... T>
+    template <size_t N>
+    std::size_t serializer<T...>::to(std::uint8_t (&buffer)[N]) const
+    {
+        return to(static_cast<std::byte *>(static_cast<void *>(buffer)), N);
+    }
+
     template <typename... T>
     constexpr serializer<T...>::serializer(T &&...args)
     : _args(std::forward<T>(args)...)

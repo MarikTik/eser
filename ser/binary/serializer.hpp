@@ -1,20 +1,64 @@
 /**
 * @file serializer.hpp
-* @brief Provides a serialization utility class for converting objects and arrays into byte streams.
+* @brief Provides a utility class for converting C++ objects and arrays into raw byte streams.
 *
-* This file defines the `ser::binary::serializer` class template, which allows efficient serialization
-* of standard C++ types (like integers, floats, enums), C-style arrays, std::array, std::string_view,
-* and trivially copyable structs into a raw byte stream. It also provides a constexpr method
-* to calculate the required serialization size beforehand.
-* The serialization process currently assumes little-endian encoding where applicable.
+* @ingroup ser_binary
 *
-* @note The serializer instance is immutable after creation via the `serialize` function.
-* @note The serializer is not thread-safe if multiple threads call `.to()` on the same instance
-* with overlapping buffers (though instances themselves are usually short-lived).
-* @note Currently supports only little-endian transformations for multi-byte types.
+* This file defines the `ser::binary::serializer` class template, which allows efficient
+* serialization of:
+*
+* - Scalar types (integers, floats, enums)
+* - C-style arrays
+* - `std::array`
+* - trivially copyable structs
+* - Null-terminated C strings
+*
+* The serialization process writes objects into a contiguous buffer of `std::byte` elements,
+* suitable for storage, network transmission, or embedded communication protocols.
+*
+* ## Endianness
+*
+* All serialization operations assume **little-endian encoding.** This is consistent with
+* most modern architectures (e.g. x86, ARM). Multi-byte values serialized on one platform
+* may require conversion before deserialization on architectures with different endianness.
+*
+* ## Buffer Safety
+*
+* The serializer does not own the output buffer memory. It is the caller's responsibility to:
+*
+* - Provide a buffer of sufficient size (use `serialized_size_of` helpers to determine size).
+* - Ensure the lifetime of the buffer outlasts serialization operations.
+*
+* ## Thread Safety
+*
+* The serializer class is **not thread-safe** if:
+*
+* - Multiple threads invoke `.to()` on the same serializer instance concurrently.
+* - Overlapping writes occur into the same output buffer.
+*
+* However, separate instances are independent and can safely serialize in parallel.
+*
+* ## Example Usage
+*
+* ```cpp
+* #include "ser/binary/serializer.hpp"
+*
+* using namespace ser::binary;
+*
+* int a = 42;
+* float b = 3.14f;
+*
+* auto s = serialize(a, b);
+*
+* std::byte buffer[64]{};
+* size_t bytes_written = s.to(buffer);
+* ```
+*
+* @note This file is part of the `ser_binary` Doxygen group.
 *
 * @author Mark Tikhonov <mtik.philosopher@gmail.com>
 * @date 2025-07-02
+*
 * @copyright
 * Creative Commons Attribution-NoDerivatives 4.0 International Public License
 * See https://creativecommons.org/licenses/by-nd/4.0/
@@ -26,9 +70,9 @@
 #include <tuple>
 #include <cassert>
 #include <cstring>
-#include <cstddef>
 #include <cstdint>
-
+#include <cstddef>
+#include "../tools/byte.hpp"
 namespace ser::binary{
     namespace __details{
         /**
@@ -43,21 +87,24 @@ namespace ser::binary{
         * @return The number of bytes written to the buffer.
         */
         template<typename Vector, std::enable_if_t<std::is_array_v<Vector>, bool> = true>
-        std::size_t serialize_impl(std::uint8_t *&buffer, std::size_t &size, const Vector& vector);
+        std::size_t serialize_impl(std::byte *&buffer, std::size_t &size, const Vector& vector);
         
         /**
         * @brief Internal method to serialize a scalar value.
         *
-        * This method serializes a scalar value into the byte stream.
+        * Serializes a single scalar value (integer, float, etc.) into the byte stream
+        * using little-endian byte ordering.
         *
-        * @tparam Scalar The scalar type to serialize.
-        * @param buffer A pointer to the output byte stream.
-        * @param size The remaining size of the output buffer.
+        * @tparam Scalar A trivially copyable arithmetic type.
+        * @param buffer A pointer to the output byte stream as `std::byte*`.
+        * @param size Reference to the remaining size of the output buffer in bytes.
         * @param scalar The scalar value to serialize.
         * @return The number of bytes written to the buffer.
+        *
+        * @note The caller must ensure that `size` is at least `sizeof(Scalar)`.
         */
         template<typename Scalar, std::enable_if_t<std::is_arithmetic_v<Scalar>, bool> = true>
-        std::size_t serialize_impl(std::uint8_t *&buffer, std::size_t &size, Scalar scalar);
+        std::size_t serialize_impl(std::byte *&buffer, std::size_t &size, Scalar scalar);
         
         /**
         * @brief Internal method to serialize an enum value.
@@ -71,7 +118,7 @@ namespace ser::binary{
         * @return The number of bytes written to the buffer.
         */
         template<typename Enum, std::enable_if_t<std::is_enum_v<Enum>, bool> = true>
-        std::size_t serialize_impl(std::uint8_t *&buffer, std::size_t &size, Enum enum_member);
+        std::size_t serialize_impl(std::byte *&buffer, std::size_t &size, Enum enum_member);
         
         /**
         * @brief Internal method to serialize a trivially copyable struct.
@@ -91,7 +138,7 @@ namespace ser::binary{
         std::is_trivially_copyable_v<Struct>, bool
         > = true
         >
-        std::size_t serialize_impl(std::uint8_t *&buffer, std::size_t &size, const Struct &str);
+        std::size_t serialize_impl(std::byte *&buffer, std::size_t &size, const Struct &str);
     }
     /**
     * @class serializer
@@ -104,27 +151,135 @@ namespace ser::binary{
     class serializer{
     public:
         /**
-        * @brief Serialize multiple values into the byte stream.
+        * @brief Serialize multiple values into a byte stream.
         *
-        * This method serializes multiple values of specified types into the byte stream.
+        * Serializes the values held in the serializer instance into a contiguous
+        * byte stream, starting at the memory location specified by `buffer`.
         *
-        * @param buffer A pointer to the output byte stream.
-        * @param size The size of the output buffer.
+        * The serialization process writes objects into the buffer in little-endian
+        * byte order. Scalars, arrays, enums, and trivially copyable structs are
+        * all supported.
+        *
+        * ## Usage
+        *
+        * ```cpp
+        * using namespace ser::binary;
+        *
+        * auto s = serialize(42, 3.14f);
+        *
+        * std::byte buffer[64]{};
+        * size_t bytes_written = s.to(buffer, sizeof(buffer));
+        * ```
+        *
+        * @param buffer A pointer to a writable output byte stream as `std::byte*`.
+        *               The buffer must be large enough to hold the serialized data.
+        * @param size The size of the output buffer in bytes.
         * @return The number of bytes written to the buffer.
+        *
+        * @note The method does not perform bounds checking beyond assertions
+        *       in debug mode. Always ensure the provided buffer is large enough.
+        *
+        * @see serializer::to(std::byte (&)[N])
+        */
+        std::size_t to(std::byte *buffer, std::size_t size) const;
+        
+        /**
+        * @brief Serialize multiple values into a fixed-size byte array.
+        *
+        * Serializes the values held in the serializer instance into a compile-time
+        * sized array of `std::byte`. This overload simplifies usage when working
+        * with static buffers, avoiding the need to explicitly specify the buffer
+        * size as a parameter.
+        *
+        * ## Usage
+        *
+        * ```cpp
+        * using namespace ser::binary;
+        *
+        * auto s = serialize(42, 3.14f);
+        *
+        * std::byte buffer[64]{};
+        * size_t bytes_written = s.to(buffer);
+        * ```
+        *
+        * @tparam N The size of the output array in bytes.
+        * @param buffer A fixed-size writable array of `std::byte` elements
+        *               that receives the serialized data.
+        * @return The number of bytes written to the buffer.
+        *
+        * @note The method does not perform bounds checking beyond assertions
+        *       in debug mode. Always ensure the array is large enough for
+        *       all serialized data.
+        *
+        * @see serializer::to(std::byte*, std::size_t)
+        */
+        template<size_t N>
+        std::size_t to(std::byte (&buffer)[N]) const;
+        
+        /**
+        * @brief Serialize multiple values into a legacy `uint8_t` byte stream.
+        *
+        * This overload of `to()` provides backwards compatibility for projects
+        * that represent byte buffers as `std::uint8_t*` rather than `std::byte*`.
+        *
+        * Internally, the method performs a safe cast to a `std::byte*` pointer
+        * and forwards the call to the primary serialization logic.
+        *
+        * ## Usage
+        *
+        * ```cpp
+        * using namespace ser::binary;
+        *
+        * auto s = serialize(42, 3.14f);
+        *
+        * std::uint8_t buffer[64]{};
+        * size_t bytes_written = s.to(buffer, sizeof(buffer));
+        * ```
+        *
+        * @param buffer A pointer to a legacy byte stream as `std::uint8_t*`.
+        *               The buffer must be large enough to hold the serialized data.
+        * @param size The size of the output buffer in bytes.
+        * @return The number of bytes written to the buffer.
+        *
+        * @note Prefer using the modern overload that accepts `std::byte*`
+        *       for improved type safety and clarity in modern C++ code.
+        *
+        * @see serializer::to(std::byte*, std::size_t)
         */
         std::size_t to(std::uint8_t *buffer, std::size_t size) const;
         
+        
         /**
-        * @brief Serialize multiple values into a compile-time sized buffer.
+        * @brief Serialize multiple values into a legacy fixed-size `uint8_t` buffer.
         *
-        * This method serializes multiple values of specified types into a compile-time sized buffer.
+        * This overload of `to()` enables serialization into compile-time sized arrays
+        * of legacy `std::uint8_t` bytes for backwards compatibility.
         *
-        * @tparam N The size of the buffer.
-        * @param buffer The output buffer.
+        * Internally, the method safely casts the provided array to a `std::byte*` buffer
+        * and forwards the call to the primary serialization logic.
+        *
+        * ## Usage
+        *
+        * ```cpp
+        * using namespace ser::binary;
+        *
+        * auto s = serialize(42, 3.14f);
+        *
+        * std::uint8_t buffer[64]{};
+        * size_t bytes_written = s.to(buffer);
+        * ```
+        *
+        * @tparam N The size of the output array in bytes.
+        * @param buffer A fixed-size array of legacy `std::uint8_t` bytes.
         * @return The number of bytes written to the buffer.
+        *
+        * @note Prefer using the modern overload that accepts a `std::byte` array
+        *       for improved type safety and clarity in modern C++ code.
+        *
+        * @see serializer::to(std::byte (&)[N])
         */
         template<size_t N>
-        std::size_t to(std::uint8_t(&buffer)[N]) const;
+        std::size_t to(std::uint8_t (&buffer)[N]) const;
         
     private:
         std::tuple<T...> _args; ///< A tuple containing the values to serialize.
