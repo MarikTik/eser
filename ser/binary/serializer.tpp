@@ -7,13 +7,13 @@
 * See https://creativecommons.org/licenses/by-nd/4.0/
 * SPDX-License-Identifier: CC-BY-ND-4.0
 */
-#ifndef SER_BINARY_SERIALIZER_TPP_
-#define SER_BINARY_SERIALIZER_TPP_
+#ifndef ESER_BINARY_SERIALIZER_TPP_
+#define ESER_BINARY_SERIALIZER_TPP_
 #include "serializer.hpp"
 #include "../tools/traits.hpp"
 #include "../tools/utils.hpp"
 //#include <string_view>
-namespace ser::binary{
+namespace eser::binary{
     namespace __details{
         template <typename Vector, std::enable_if_t<std::is_array_v<Vector>, bool>>
         std::size_t serialize_impl(std::byte *&buffer, std::size_t &size, const Vector& vector)
@@ -115,6 +115,6 @@ namespace ser::binary{
     : _args(std::forward<T>(args)...)
     {
     }
-} // namespace scr::utils
+} // namespace eser::binary
     
-#endif // SER_BINARY_SERIALIZER_TPP_
+#endif // ESER_BINARY_SERIALIZER_TPP_

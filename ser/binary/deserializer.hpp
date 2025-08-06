@@ -1,24 +1,28 @@
 /**
 * @file deserializer.hpp
-* @ingroup ser_binary
+*
 * @brief Provides a deserialization utility for reconstructing objects and arrays from byte streams.
 *
-* This file defines the `ser::binary::deserializer` class, which allows efficient deserialization
+* @ingroup eser_binary eser::binary
+*
+* This file defines the `eser::binary::deserializer` class, which allows efficient deserialization
 * of data from a byte array into standard C++ types such as integers, floating-point numbers,
 * and arrays. The deserialization process assumes little-endian encoding.
 *
 * @note The deserializer is not thread-safe.
 * @note Currently supports only little-endian transformations.
+*
 * @author Mark Tikhonov <mtik.philosopher@gmail.com>
+*
 * @date 2025-07-02
+*
 * @copyright
 * Creative Commons Attribution-NoDerivatives 4.0 International Public License
 * See https://creativecommons.org/licenses/by-nd/4.0/
 * SPDX-License-Identifier: CC-BY-ND-4.0
 */
-#ifndef SER_BINARY_DESERIALIZER_HPP_
-#define SER_BINARY_DESERIALIZER_HPP_
-
+#ifndef ESER_BINARY_DESERIALIZER_HPP_
+#define ESER_BINARY_DESERIALIZER_HPP_
 #include "../tools/byte.hpp"
 #include <cstddef>
 #include <cstdint>
@@ -26,7 +30,7 @@
 #include <tuple>
 #include <array>
 
-namespace ser::binary{
+namespace eser::binary{
     /**
     * @class deserializer
     * @brief A utility class for deserializing data from a byte stream.
@@ -202,7 +206,7 @@ namespace ser::binary{
     {
         return deserialize(data, N);
     }
-} // namespace ser::binary
+} // namespace eser::binary
 
 #include "deserializer.tpp"
-#endif // SER_BINARY_DESERIALIZER_HPP_
+#endif // ESER_BINARY_DESERIALIZER_HPP_

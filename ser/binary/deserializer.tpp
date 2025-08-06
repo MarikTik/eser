@@ -7,14 +7,14 @@
 * See https://creativecommons.org/licenses/by-nd/4.0/
 * SPDX-License-Identifier: CC-BY-ND-4.0
 */
-#ifndef SER_BINARY_DESERIALIZER_TPP_
-#define SER_BINARY_DESERIALIZER_TPP_
+#ifndef ESER_BINARY_DESERIALIZER_TPP_
+#define ESER_BINARY_DESERIALIZER_TPP_
 #include "deserializer.hpp"
 #include <cassert>
 #include <utility>
 #include <array>
 #include <cstring>
-namespace ser::binary{
+namespace eser::binary{
     template <typename... T, std::enable_if_t<(sizeof...(T) > 1), bool>>
     inline std::tuple<std::conditional_t<std::is_array_v<T>, std::array<std::remove_extent_t<T>, std::extent_v<T>>, T>...> 
     deserializer::to()
@@ -93,6 +93,6 @@ namespace ser::binary{
     {
         return deserialize(static_cast<const std::byte *>(static_cast<const void *>(data)), length);
     }
-} // namespace ser::binary
+} // namespace eser::binary
 
-#endif // SER_BINARY_DESERIALIZER_TPP_
+#endif // ESER_BINARY_DESERIALIZER_TPP_

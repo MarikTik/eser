@@ -1,6 +1,6 @@
-# ser – Lightweight C++ Serialization for Embedded and Systems Programming
+# eser – Lightweight C++ Serialization for Embedded and Systems Programming
 
-`ser` is a collection of minimalistic, efficient C++ serializers and deserializers designed for embedded systems such as the ESP32, but equally usable in desktop/server environments. The project provides fast and type-safe facilities for converting objects into raw byte streams and back, with a focus on:
+`eser` is a collection of minimalistic, efficient C++ serializers and deserializers designed for embedded systems such as the ESP32, but equally usable in desktop/server environments. The project provides fast and type-safe facilities for converting objects into raw byte streams and back, with a focus on:
 
 - Portability (desktop + embedded)
 - Efficiency (zero dynamic allocation in core APIs)
@@ -9,7 +9,7 @@
 
 ## Current Modules
 
-- `ser::binary`: A binary serializer/deserializer targeting trivially copyable types and arrays, useful for task parameter encoding, raw data communication, and internal buffers.
+- `eser::binary`: A binary serializer/deserializer targeting trivially copyable types and arrays, useful for task parameter encoding, raw data communication, and internal buffers.
 
 ## Project Goals
 
@@ -21,7 +21,7 @@
 
 1. Clone the repository
 2. Include the desired module headers (e.g. `serializer.hpp`, `deserializer.hpp`)
-3. Use `ser::binary::serialize(...)` and `ser::binary::deserialize(...)` to encode/decode data.
+3. Use `eser::binary::serialize(...)` and `ser::binary::deserialize(...)` to encode/decode data.
 
 ## Contributing
 
