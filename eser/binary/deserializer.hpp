@@ -89,6 +89,38 @@ namespace eser::binary{
         */
         template<typename Scalar, std::enable_if_t<std::is_scalar_v<Scalar>, bool> = true>
         [[nodiscard]] Scalar to();
+
+        
+        /**
+        * @brief Deserialize a single trivially copyable non-scalar, non-array object from the byte stream.
+        *
+        * This method reconstructs a trivially copyable object (e.g., a struct or POD type) from the byte stream.
+        * It assumes that the type is safe to copy with `memcpy` and has a fixed memory layout.
+        *
+        * @tparam T The type to deserialize. Must be:
+        *          - `std::is_trivially_copyable_v<T> == true`
+        *          - not a scalar type (e.g., int, float)
+        *          - not an array type
+        *
+        * @return The deserialized value of type `T`.
+        * 
+        * @throws Assertion failure if the byte stream contains fewer bytes than `sizeof(T)`.
+        *
+        * @note This overload complements the scalar and array specializations, enabling direct unpacking of user-defined
+        *       simple structs and POD types.
+        *
+        * @code
+        * struct Point { int x, y; };
+        * static_assert(std::is_trivially_copyable_v<Point>);
+        *
+        * auto point = deserializer.to<Point>();  // Reads 8 bytes (2 ints)
+        * @endcode
+        */
+        template<typename T, std::enable_if_t<
+            std::is_trivially_copyable_v<T> &&
+            !std::is_scalar_v<T> &&
+            !std::is_array_v<T>, bool> = true>
+        [[nodiscard]] T to();
         
     private:
         const std::byte *_data;       ///< Pointer to the byte stream.

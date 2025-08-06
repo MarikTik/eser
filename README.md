@@ -38,7 +38,7 @@ auto s = serialize(id, temperature);
 std::byte buffer[64]{};
 size_t bytes_written = s.to(buffer);  // Writes bytes into buffer
 
-You can also serialize into a uint8_t array if required:
+// You can also serialize into a uint8_t array if required:
 
 std::uint8_t raw[64]{};
 s.to(raw);
@@ -59,7 +59,7 @@ auto d = deserialize(buffer);
 // Extract into typed values
 auto [id, temperature] = d.to<int, float>();
 
-For single values or arrays:
+// For single values or arrays:
 
 int value = d.to<int>();
 

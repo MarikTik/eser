@@ -51,6 +51,16 @@ namespace eser::binary{
         auto result = deserialize_impl<Scalar>();
         return result;
     }
+
+    template<typename T, std::enable_if_t<
+        std::is_trivially_copyable_v<T> &&
+        !std::is_scalar_v<T> &&
+        !std::is_array_v<T>, bool>
+    >
+    inline T deserializer::to() {
+        assert(sizeof(T) <= _length && "Data length is insufficient for the requested type");
+        return deserialize_impl<T>();
+    }
     
     template<typename T>
     std::enable_if_t<std::is_array_v<T>, std::array<std::remove_extent_t<T>, std::extent_v<T>>>
