@@ -1,7 +1,7 @@
 #include <catch2/catch_all.hpp>
 #include <limits>
 #include <cstdint>
-#include "ser/binary/deserializer.hpp"
+#include "eser/binary/deserializer.hpp"
 
 using namespace eser::binary;
 
