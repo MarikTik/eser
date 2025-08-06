@@ -59,7 +59,7 @@ auto d = deserialize(buffer);
 // Extract into typed values
 auto [id, temperature] = d.to<int, float>();
 
-For single values or arrays:
+// For single values or arrays:
 
 int value = d.to<int>();
 
