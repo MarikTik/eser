@@ -3,7 +3,7 @@
 #include "ser/binary/deserializer.hpp"
 #include <limits>
 #include <cstdint>
-using namespace ser::binary;
+using namespace eser::binary;
 
 constexpr std::size_t BUFFER_SIZE = 200;
 static std::uint8_t buffer[BUFFER_SIZE];
