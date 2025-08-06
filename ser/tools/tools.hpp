@@ -18,9 +18,9 @@
 * See https://creativecommons.org/licenses/by-nd/4.0/
 * SPDX-License-Identifier: CC-BY-ND-4.0
 */
-#ifndef SER_TOOLS_TOOLS_HPP_
-#define SER_TOOLS_TOOLS_HPP_
+#ifndef ESER_TOOLS_TOOLS_HPP_
+#define ESER_TOOLS_TOOLS_HPP_
 #include "byte.hpp"
 #include "utils.hpp"
 #include "traits.hpp"
-#endif // SER_TOOLS_TOOLS_HPP_
+#endif // ESER_TOOLS_TOOLS_HPP_
