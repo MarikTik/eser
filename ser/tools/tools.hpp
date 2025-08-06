@@ -1,10 +1,13 @@
 /**
 * @file tools.hpp
-* @defgroup ser_tools Serialization Tools
-* @ingroup ser
+*
+* @defgroup eser_tools eser::tools
+*
+* @ingroup eser
+*
 * @brief Aggregator header for all utilities in `ser/tools/`.
 *
-* The `ser_tools` group includes:
+* The `eser_tools` group includes:
 * - Fallbacks like `byte.hpp` for missing standard library types
 * - Type traits for metaprogramming
 * - Miscellaneous utilities supporting serialization and embedded development

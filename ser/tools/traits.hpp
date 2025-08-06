@@ -1,7 +1,10 @@
 /**
 * @file traits.hpp
-* @ingroup ser_tools
+*
 * @brief Provides custom type traits for template metaprogramming.
+*
+* @ingroup eser_tools
+*
 *
 * This file defines additional type traits outside of the C++ standard library.
 * These traits are designed for use in modern template metaprogramming,
@@ -19,12 +22,12 @@
 * SPDX-License-Identifier: CC-BY-ND-4.0
 */
 
-#ifndef SER_TRAITS_HPP_
-#define SER_TRAITS_HPP_
+#ifndef ESER_TRAITS_HPP_
+#define ESER_TRAITS_HPP_
 
 #include <type_traits> // For std::true_type, std::bool_constant, std::is_same_v
 
-namespace ser::traits {
+namespace eser::tools {
     /**
     * @struct is_unique
     * @brief Checks whether a pack of types is composed of distinct types.
@@ -144,6 +147,6 @@ namespace ser::traits {
     */
     template <class T>
     using type_identity_t = typename type_identity<T>::type;
-} // namespace scr::utils::templates
+} // namespace eser::tools
 
-#endif // SER_TRAITS_HPP_
+#endif // ESER_TRAITS_HPP_
