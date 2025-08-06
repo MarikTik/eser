@@ -58,12 +58,19 @@
 * @note This file is part of the `ser_binary` Doxygen group.
 *
 * @author Mark Tikhonov <mtik.philosopher@gmail.com>
+*
 * @date 2025-07-02
 *
 * @copyright
-* Creative Commons Attribution-NoDerivatives 4.0 International Public License
-* See https://creativecommons.org/licenses/by-nd/4.0/
-* SPDX-License-Identifier: CC-BY-ND-4.0
+* MIT License
+* SPDX-License-Identifier: MIT
+*
+* @par Changelog
+* - 2025-07-02
+* -     Initial creation.
+* - 2025-08-05
+*       License changed from CC BY-ND 4.0 to MIT.
+*       Library renamed from `ser` to `eser`
 */
 #ifndef ESER_BINARY_SERIALIZER_HPP_
 #define ESER_BINARY_SERIALIZER_HPP_

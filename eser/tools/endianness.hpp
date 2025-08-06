@@ -1,3 +1,15 @@
+/**
+* @file endianness.hpp
+*
+* @author Mark Tikhonov <mtik.philosopher@gmail.com>
+*
+* @date 2025-08-05
+*
+* @copyright
+* MIT License
+* Copyright (c) 2025 Mark Tikhonov
+* See the accompanying LICENSE file for details.
+*/
 #ifndef ESER_ENDIANNESS_HPP_
 #define ESER_ENDIANNESS_HPP_
 #pragma once
@@ -30,6 +42,7 @@
         constexpr bool host_is_little_endian = ETASK_FORCE_ENDIANNESS;
     #endif
 
+#endif
 #endif
 
 #endif // ESER_ENDIANNESS_HPP_

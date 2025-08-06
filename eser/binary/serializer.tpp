@@ -1,11 +1,22 @@
 /**
 * @file serializer.tpp
+*
+* @brief Definition of functionality in serialzer.hpp
+*
 * @author Mark Tikhonov <mtik.philosopher@gmail.com>
+*
 * @date 2025-07-02
+*
 * @copyright
-* Creative Commons Attribution-NoDerivatives 4.0 International Public License
-* See https://creativecommons.org/licenses/by-nd/4.0/
-* SPDX-License-Identifier: CC-BY-ND-4.0
+* MIT License
+* SPDX-License-Identifier: MIT
+*
+* @par Changelog
+* - 2025-07-02
+* -     Initial creation.
+* - 2025-08-05
+*       License changed from CC BY-ND 4.0 to MIT.
+*       Library renamed from `ser` to `eser`
 */
 #ifndef ESER_BINARY_SERIALIZER_TPP_
 #define ESER_BINARY_SERIALIZER_TPP_

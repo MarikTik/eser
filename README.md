@@ -21,7 +21,7 @@
 
 1. Clone the repository
 2. Include the desired module headers (e.g. `serializer.hpp`, `deserializer.hpp`)
-3. Use `eser::binary::serialize(...)` and `ser::binary::deserialize(...)` to encode/decode data.
+3. Use `eser::binary::serialize(...)` and `seer::binary::deserialize(...)` to encode/decode data.
 
 ## Contributing
 
@@ -34,15 +34,9 @@ Direct edits or redistribution of modified versions is **not allowed** by defaul
 
 ## License
 
-This project is licensed under the [Creative Commons Attribution-NoDerivatives 4.0 International (CC BY-ND 4.0)](https://creativecommons.org/licenses/by-nd/4.0/).
+This project is licensed under the MIT License. You are free to use, modify, and distribute the code for both commercial and non-commercial purposes, provided you include the original copyright notice and the license text.
 
-This means:
-- You are free to use and redistribute the unmodified source
-- You must attribute the original work
-- You may **not** distribute modified versions of the code (publicly or privately) without explicit permission
-- Contributions via pull request are welcome and may be merged into the main project
-
-For details, see `LICENSE`.
+For the full license text, please see the [LICENSE](LICENSE) file.
 
 ## Roadmap
 

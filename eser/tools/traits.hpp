@@ -5,7 +5,6 @@
 *
 * @ingroup eser_tools
 *
-*
 * This file defines additional type traits outside of the C++ standard library.
 * These traits are designed for use in modern template metaprogramming,
 * following the same structure and naming conventions as standard library traits.
@@ -14,14 +13,22 @@
 * with standard traits and other libraries.
 * 
 * @warning This file is intended to use on platforms supporting C++17 standard or later.
+*
 * @author Mark Tikhonov <mtik.philosopher@gmail.com>
+*
 * @date 2025-07-02
+*
 * @copyright
-* Creative Commons Attribution-NoDerivatives 4.0 International Public License
-* See https://creativecommons.org/licenses/by-nd/4.0/
-* SPDX-License-Identifier: CC-BY-ND-4.0
+* MIT License
+* SPDX-License-Identifier: MIT
+*
+* @par Changelog
+* - 2025-07-02
+* -     Initial creation.
+* - 2025-08-05
+*       License changed from CC BY-ND 4.0 to MIT.
+*       Library renamed from `ser` to `eser`
 */
-
 #ifndef ESER_TRAITS_HPP_
 #define ESER_TRAITS_HPP_
 
