@@ -69,13 +69,13 @@ namespace eser::tools
             return sizeof(bare_t);
         }
         else if constexpr (std::is_same_v<std::decay_t<bare_t>, const char*>) {
-        static_assert(traits::always_false_v<bare_t>,
+        static_assert(tools::always_false_v<bare_t>,
             "Runtime const char* cannot be used for compile-time size calculation. "
             "Use fixed-size char arrays or std::string_view instead.");
             return 0;
         }
         else {
-            static_assert(traits::always_false_v<bare_t>,
+            static_assert(tools::always_false_v<bare_t>,
                 "Unsupported type for serialization size calculation.");
                 return 0;
             }
