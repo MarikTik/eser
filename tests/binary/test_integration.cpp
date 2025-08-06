@@ -150,3 +150,28 @@ TEST_CASE("Serialize and deserialize enum class") {
     auto r = deserialize(buffer).to<test_enum>();
     REQUIRE(r == e);
 }
+
+
+
+TEST_CASE("Deserialize trivially copyable struct", "[deserializer][struct]") {
+    struct point {
+        int x;
+        int y;
+
+        bool operator==(const point& other) const {
+            return x == other.x && y == other.y;
+        }
+    };
+    std::byte buffer[sizeof(point)];
+    static_assert(std::is_trivially_copyable_v<point>, "point must be trivially copyable");
+    point original{42, -7};
+
+    serialize(original).to(buffer);
+
+    // Deserialize it back
+    auto des = deserialize(buffer, sizeof(buffer));
+    point p = des.to<point>();
+
+    REQUIRE(original == p);
+    REQUIRE(des.to<int>() == 0); // Ensure pointer has moved: no remaining int data
+}
