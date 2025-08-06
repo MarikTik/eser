@@ -1,11 +1,13 @@
 /**
-* @file ser.hpp
-* @brief Master include header for the `ser` serialization library.
+* @file eser.hpp
 *
-* @defgroup ser Serialization Library
+* @brief Master include header for the `eser` serialization library.
+*
+* @defgroup eser Serialization Library
+*
 * @brief A modern, header-only C++17 library for efficient data serialization and deserialization.
 *
-* The `ser` library provides a lightweight framework for serializing and deserializing data
+* The `eser` library provides a lightweight framework for serializing and deserializing data
 * in embedded systems, applications, and any project requiring:
 * 
 * - Compact binary representation
@@ -15,8 +17,8 @@
 *
 * ## Submodules
 *
-* - @ref ser_tools "ser_tools" : Utility components and type traits used across serialization tasks.
-* - @ref ser_binary "ser_binary" : High-performance binary serialization and deserialization utilities.
+* - @ref eser_tools "eser_tools" : Utility components and type traits used across serialization tasks.
+* - @ref eser_binary "eser_binary" : High-performance binary serialization and deserialization utilities.
 *
 * ## Features
 *
@@ -28,9 +30,9 @@
 * ## Usage Example
 *
 * ```cpp
-* #include "ser/ser.hpp"
+* #include "eser/eser.hpp"
 *
-* using namespace ser::binary;
+* using namespace eser::binary;
 *
 * int a = 42;
 * float b = 3.14f;
@@ -50,14 +52,16 @@
 * @note All serialization in the binary module assumes little-endian encoding.
 *
 * @author Mark Tikhonov <mtik.philosopher@gmail.com>
+*
 * @date Jul 2 2025
+*
 * @copyright
 * Creative Commons Attribution-NoDerivatives 4.0 International Public License
 * See https://creativecommons.org/licenses/by-nd/4.0/
 * SPDX-License-Identifier: CC-BY-ND-4.0
 */
-#ifndef SER_HPP_
-#define SER_HPP_
+#ifndef ESER_HPP_
+#define ESER_HPP_
 #include "tools/tools.hpp"
 #include "binary/binary.hpp"
-#endif // SER_HPP_
+#endif // ESER_HPP_

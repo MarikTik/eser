@@ -1,16 +1,18 @@
 /**
 * @file binary.hpp
+*
 * @brief Aggregator header for the binary serialization and deserialization utilities.
 *
-* @defgroup ser_binary Binary Serialization Module
-* @ingroup ser
+* @defgroup eser_binary eser::binary
+*
+* @ingroup eser
 *
 * @brief Provides high-performance binary serialization and deserialization for modern C++.
 *
-* The `ser::binary` module includes:
+* The `eser::binary` module includes:
 * 
-* - @ref ser::binary::serializer "serializer" - Converts C++ objects and arrays into a raw byte stream.
-* - @ref ser::binary::deserializer "deserializer" - Reconstructs C++ objects and arrays from a byte stream.
+* - @ref eser::binary::serializer "serializer" - Converts C++ objects and arrays into a raw byte stream.
+* - @ref eser::binary::deserializer "deserializer" - Reconstructs C++ objects and arrays from a byte stream.
 *
 * This module is designed for:
 * 
@@ -35,9 +37,9 @@
 * ## Usage Example
 *
 * ```cpp
-* #include "ser/binary/binary.hpp"
+* #include "eser/binary/binary.hpp"
 *
-* using namespace ser::binary;
+* using namespace eser::binary;
 *
 * int a = 42;
 * float b = 3.14f;
@@ -56,16 +58,26 @@
 *
 * @note The serialization and deserialization classes are not thread-safe
 * when used concurrently on the same instance.
+*
 * @note The deserializer invalidates itself as it consumes bytes from the input stream.
+*
 * @author Mark Tikhonov <mtik.philosopher@gmail.com>
+*
 * @date 2025-07-02
+*
 * @copyright
-* Creative Commons Attribution-NoDerivatives 4.0 International Public License
-* See https://creativecommons.org/licenses/by-nd/4.0/
-* SPDX-License-Identifier: CC-BY-ND-4.0
+* MIT License
+* SPDX-License-Identifier: MIT
+*
+* @par Changelog
+* - 2025-07-02
+* -     Initial creation.
+* - 2025-08-05
+*       License changed from CC BY-ND 4.0 to MIT.
+*       Library renamed from `ser` to `eser`
 */
-#ifndef SER_BINARY_BINARY_HPP_
-#define SER_BINARY_BINARY_HPP_
+#ifndef ESER_BINARY_BINARY_HPP_
+#define ESER_BINARY_BINARY_HPP_
 #include "serializer.hpp"
 #include "deserializer.hpp"
-#endif // SER_BINARY_BINARY_HPP_
+#endif // ESER_BINARY_BINARY_HPP_

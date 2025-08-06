@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.20)
-project(ser LANGUAGES CXX)
+project(eser LANGUAGES CXX)
 
+
+set(CPACK_PACKAGE_LICENSE "MIT")
 if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
     message(FATAL_ERROR "In-source builds are not allowed. Use: cmake -S . -B build")
 endif()
@@ -10,16 +12,22 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Interface library for header-only code
-add_library(ser INTERFACE)
+add_library(eser INTERFACE)
+
+set_target_properties(eser PROPERTIES
+  VERSION 0.1.0
+  SOVERSION 0
+  PUBLIC_HEADER "eser/eser.hpp"
+)
 
 # Public include directory
-target_include_directories(ser INTERFACE
+target_include_directories(eser INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 )
 
 # Compiler warnings for consumer projects
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    target_compile_options(ser INTERFACE -Wall -Wextra -pedantic)
+    target_compile_options(eser INTERFACE -Wall -Wextra -pedantic)
 endif()
 
 

@@ -1,9 +1,9 @@
 #include <catch2/catch_all.hpp>
 #include <limits>
 #include <cstdint>
-#include "ser/binary/deserializer.hpp"
+#include "eser/binary/deserializer.hpp"
 
-using namespace ser::binary;
+using namespace eser::binary;
 
 constexpr std::size_t BUFFER_SIZE = 200;
 static std::uint8_t buffer[BUFFER_SIZE];

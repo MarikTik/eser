@@ -1,7 +1,9 @@
 /**
 * @file byte.hpp
-* @ingroup ser_tools
+*
 * @brief Fallback mechanism for `std::byte` in embedded or incomplete toolchains.
+*
+* @ingroup eser_tools
 *
 * This header ensures the availability of `std::byte` for all platforms targeted by the
 * `ser` serialization library and the broader `etask` framework.
@@ -32,16 +34,24 @@
 * instead of relying on this fallback.
 
 * @author Mark Tikhonov <mtik.philosopher@gmail.com>
+*
 * @date 2025-07-02
+*
 * @copyright
-* Creative Commons Attribution-NoDerivatives 4.0 International Public License
-* See https://creativecommons.org/licenses/by-nd/4.0/
-* SPDX-License-Identifier: CC-BY-ND-4.0
+* MIT License
+* SPDX-License-Identifier: MIT
+*
+* @par Changelog
+* - 2025-07-02
+* -     Initial creation.
+* - 2025-08-05
+*       License changed from CC BY-ND 4.0 to MIT.
+*       Library renamed from `ser` to `eser`
 */
 
 
-#ifndef SER_TOOLS_BYTE_HPP_
-#define SER_TOOLS_BYTE_HPP_
+#ifndef ESER_TOOLS_BYTE_HPP_
+#define ESER_TOOLS_BYTE_HPP_
 
 #if defined(__has_include)
 
@@ -125,4 +135,4 @@
 
 #endif // __has_include
 
-#endif // SER_TOOLS_BYTE_HPP_
+#endif // ESER_TOOLS_BYTE_HPP_

@@ -1,10 +1,11 @@
 /**
 * @file serializer.hpp
+*
 * @brief Provides a utility class for converting C++ objects and arrays into raw byte streams.
 *
-* @ingroup ser_binary
+* @ingroup eser_binary eser::binary
 *
-* This file defines the `ser::binary::serializer` class template, which allows efficient
+* This file defines the `eser::binary::serializer` class template, which allows efficient
 * serialization of:
 *
 * - Scalar types (integers, floats, enums)
@@ -41,7 +42,7 @@
 * ## Example Usage
 *
 * ```cpp
-* #include "ser/binary/serializer.hpp"
+* #include "eser/binary/serializer.hpp"
 *
 * using namespace ser::binary;
 *
@@ -57,15 +58,22 @@
 * @note This file is part of the `ser_binary` Doxygen group.
 *
 * @author Mark Tikhonov <mtik.philosopher@gmail.com>
+*
 * @date 2025-07-02
 *
 * @copyright
-* Creative Commons Attribution-NoDerivatives 4.0 International Public License
-* See https://creativecommons.org/licenses/by-nd/4.0/
-* SPDX-License-Identifier: CC-BY-ND-4.0
+* MIT License
+* SPDX-License-Identifier: MIT
+*
+* @par Changelog
+* - 2025-07-02
+* -     Initial creation.
+* - 2025-08-05
+*       License changed from CC BY-ND 4.0 to MIT.
+*       Library renamed from `ser` to `eser`
 */
-#ifndef SER_BINARY_SERIALIZER_HPP_
-#define SER_BINARY_SERIALIZER_HPP_
+#ifndef ESER_BINARY_SERIALIZER_HPP_
+#define ESER_BINARY_SERIALIZER_HPP_
 #include <type_traits>
 #include <tuple>
 #include <cassert>
@@ -73,7 +81,7 @@
 #include <cstdint>
 #include <cstddef>
 #include "../tools/byte.hpp"
-namespace ser::binary{
+namespace eser::binary{
     namespace __details{
         /**
         * @brief Internal method to serialize an array.
@@ -324,8 +332,7 @@ namespace ser::binary{
         return serializer<T...>(std::forward<T>(args)...);
     }
     
-} // ser::binary
+} // eser::binary
 
 #include "serializer.tpp"
-
-#endif // SER_BINARY_SERIALIZER_HPP_
+#endif // ESER_BINARY_SERIALIZER_HPP_
