@@ -30,7 +30,7 @@ namespace eser::binary{
     inline std::tuple<std::conditional_t<std::is_array_v<T>, std::array<std::remove_extent_t<T>, std::extent_v<T>>, T>...> 
     deserializer::to()
     {
-        constexpr std::size_t bytes_required = (sizeof(T) + ...);
+        [[maybe_unused]] constexpr std::size_t bytes_required = (sizeof(T) + ...);
         static_assert(sizeof...(T) > 0, "At least one type must be specified");
         static_assert((std::is_trivially_constructible_v<T> and ...), "All types must be trivially constructible");
         assert(_length >= bytes_required && "Data length is insufficient for the requested types"); 
