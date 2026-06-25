@@ -17,103 +17,85 @@
 * - 2025-08-05
 *       License changed from CC BY-ND 4.0 to MIT.
 *       Library renamed from `ser` to `eser`
+* - 2026-06-24
+*       `to()` overloads return `std::optional<...>`: `std::nullopt` on insufficient
+*       bytes, otherwise the engaged value. Removed the silent zero-fill; the public
+*       `to()` now guarantees the bytes exist before any read.
+*
+*       `to()` became single-parameter; multi-field reads name a `std::tuple`. The
+*       per-array `deserialize_impl` was removed — `std::array` is trivially copyable and
+*       goes through the single memcpy reader like any other leaf value.
 */
-#ifndef ESER_BINARY_DESERIALIZER_TPP_
-#define ESER_BINARY_DESERIALIZER_TPP_
+#ifndef ESER_FLAT_DESERIALIZER_TPP_
+#define ESER_FLAT_DESERIALIZER_TPP_
 #include "deserializer.hpp"
+#include "../tools/endianness.hpp"
 #include <cassert>
 #include <utility>
 #include <array>
 #include <cstring>
-namespace eser::binary{
-    template <typename... T, std::enable_if_t<(sizeof...(T) > 1), bool>>
-    inline std::tuple<std::conditional_t<std::is_array_v<T>, std::array<std::remove_extent_t<T>, std::extent_v<T>>, T>...> 
-    deserializer::to()
+namespace eser::flat{
+    template<endianness Wire>
+    template<typename Tuple, std::enable_if_t<tools::is_tuple_v<Tuple>, bool>>
+    inline std::optional<Tuple> deserializer<Wire>::to() noexcept
     {
-        constexpr std::size_t bytes_required = (sizeof(T) + ...);
-        static_assert(sizeof...(T) > 0, "At least one type must be specified");
-        static_assert((std::is_trivially_constructible_v<T> and ...), "All types must be trivially constructible");
-        assert(_length >= bytes_required && "Data length is insufficient for the requested types"); 
-        return { deserialize_impl<T>()... };
-    }
-    
-    template <typename Vector, std::enable_if_t<std::is_array_v<Vector>, bool>>
-    inline std::array<std::remove_extent_t<Vector>, std::extent_v<Vector>> deserializer::to()
-    {
-        assert(_length >= sizeof(Vector) && "Data length is insufficient for the requested array type");
-        return deserialize_impl<Vector>();
-    }
-    
-    template <typename Scalar, std::enable_if_t<std::is_scalar_v<Scalar>, bool>>
-    inline Scalar deserializer::to()
-    {
-        assert(sizeof(Scalar) <= _length && "Data length is insufficient for the requested type");
-        auto result = deserialize_impl<Scalar>();
-        return result;
+        return to_impl(tools::type_identity<Tuple>{});
     }
 
+    template<endianness Wire>
     template<typename T, std::enable_if_t<
         std::is_trivially_copyable_v<T> &&
-        !std::is_scalar_v<T> &&
-        !std::is_array_v<T>, bool>
+        !std::is_array_v<T> &&
+        !tools::is_tuple_v<T>, bool>
     >
-    inline T deserializer::to() {
-        assert(sizeof(T) <= _length && "Data length is insufficient for the requested type");
+    inline std::optional<T> deserializer<Wire>::to() noexcept
+    {
+        if (_length < sizeof(T)) return std::nullopt;
         return deserialize_impl<T>();
     }
-    
-    template<typename T>
-    std::enable_if_t<std::is_array_v<T>, std::array<std::remove_extent_t<T>, std::extent_v<T>>>
-    deserializer::deserialize_impl()
+
+    template<endianness Wire>
+    template<typename... Es>
+    inline std::optional<std::tuple<Es...>> deserializer<Wire>::to_impl(tools::type_identity<std::tuple<Es...>>) noexcept
     {
-        using type = std::remove_extent_t<T>;
-        constexpr std::size_t N = std::extent_v<T>;
-        constexpr std::size_t type_size = sizeof(type);
-        static_assert(N > 0, "Array extent (size) must be greater than zero");
-        
-        std::array<type, N> array;
-        std::size_t i = 0;
-        size_t length = _length; // save the length before we start modifying it
-        for (; i < N and (i + 1) * type_size <= length; i++)
-        array[i] = deserialize_impl<type>();
-        
-        if (i not_eq N){
-            std::fill(array.begin() + i, array.end(), type{});
-            // flag an esp32 exception here
-        }
-        return array;
+        static_assert(sizeof...(Es) > 0, "Cannot deserialize an empty std::tuple<>; name at least one field");
+        constexpr std::size_t bytes_required = (sizeof(Es) + ...);
+        if (_length < bytes_required) return std::nullopt;
+        // Braced init guarantees left-to-right evaluation, so each deserialize_impl
+        // advances the cursor in field order; a parenthesised tuple ctor would not.
+        return std::tuple<Es...>{ deserialize_impl<Es>()... };
     }
-    
+
+    template<endianness Wire>
     template<typename T>
-    std::enable_if_t<not std::is_array_v<T>, T> deserializer::deserialize_impl()
-    { 
-        constexpr std::size_t type_size = sizeof(T);
-        if (_length < type_size){
-            // flag an esp32 exception here or plan on using std::optional<T> 
-            // to indicate that the value is not available
-            return T{}; 
-        }
+    inline T deserializer<Wire>::deserialize_impl() noexcept
+    {
+        static_assert(std::is_trivially_copyable_v<T>, "deserialize_impl requires a trivially-copyable type");
         T value {};
-        std::memcpy(&value, _data, type_size);
-        _data += type_size;
-        _length -= type_size;         
+        std::memcpy(&value, _data, sizeof(T));
+        _data += sizeof(T);
+        _length -= sizeof(T);
+        tools::apply_wire_endianness<Wire>(value); // convert from wire order to host order
         return value;
     }
-    
-    constexpr deserializer::deserializer(const std::byte *data, std::size_t length)
+
+    template<endianness Wire>
+    constexpr deserializer<Wire>::deserializer(const std::byte *data, std::size_t length)
     : _data(data), _length(length)
     {
     }
-    
-    constexpr deserializer deserialize(const std::byte *data, std::size_t length)
+
+    template<endianness Wire>
+    constexpr deserializer<Wire> deserialize(const std::byte *data, std::size_t length)
     {
         assert(data != nullptr && "Data pointer is null");
-        return deserializer(data, length);
+        return deserializer<Wire>(data, length);
     }
-    constexpr deserializer deserialize(const std::uint8_t *data, std::size_t length)
+    template<endianness Wire>
+    constexpr deserializer<Wire> deserialize(const std::uint8_t *data, std::size_t length)
     {
-        return deserialize(static_cast<const std::byte *>(static_cast<const void *>(data)), length);
+        return deserialize<Wire>(static_cast<const std::byte *>(static_cast<const void *>(data)), length);
     }
-} // namespace eser::binary
+} // namespace eser::flat
 
-#endif // ESER_BINARY_DESERIALIZER_TPP_
+#endif // ESER_FLAT_DESERIALIZER_TPP_

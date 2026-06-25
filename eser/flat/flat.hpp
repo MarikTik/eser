@@ -1,18 +1,18 @@
 /**
-* @file binary.hpp
+* @file flat.hpp
 *
 * @brief Aggregator header for the binary serialization and deserialization utilities.
 *
-* @defgroup eser_binary eser::binary
+* @defgroup eser_flat eser::flat
 *
 * @ingroup eser
 *
 * @brief Provides high-performance binary serialization and deserialization for modern C++.
 *
-* The `eser::binary` module includes:
+* The `eser::flat` module includes:
 * 
-* - @ref eser::binary::serializer "serializer" - Converts C++ objects and arrays into a raw byte stream.
-* - @ref eser::binary::deserializer "deserializer" - Reconstructs C++ objects and arrays from a byte stream.
+* - @ref eser::flat::serializer "serializer" - Converts C++ objects and arrays into a raw byte stream.
+* - @ref eser::flat::deserializer "deserializer" - Reconstructs C++ objects and arrays from a byte stream.
 *
 * This module is designed for:
 * 
@@ -27,19 +27,23 @@
 * - Trivially copyable scalars (integers, floats, enums)
 * - C-style arrays
 * - `std::array`
-* - `std::string_view` (for serialization) # not maintained, prefer fixed-size arrays
+* - `eser::tools::fixed_string<N>` — a fixed-capacity string field (read via `to<fixed_string<N>>()`)
 * - Trivially copyable structs
 *
 * ## Endianness
 *
-* All serialization and deserialization in this module assumes **little-endian** encoding.
+* The wire byte order is a compile-time policy (`eser::tools::endianness`), defaulting to
+* little-endian. Pass it explicitly — `serialize<endianness::big>(...)`,
+* `deserialize<endianness::big>(...)` — to read/write the other order; scalars are byte-reversed
+* via `if constexpr` only when the wire order differs from the host. Raw structs are restricted
+* to the native order (they cannot be byte-swapped).
 *
 * ## Usage Example
 *
 * ```cpp
-* #include "eser/binary/binary.hpp"
+* #include "eser/flat/flat.hpp"
 *
-* using namespace eser::binary;
+* using namespace eser::flat;
 *
 * int a = 42;
 * float b = 3.14f;
@@ -50,7 +54,9 @@
 * size_t bytes_written = s.to(buffer);
 *
 * auto d = deserialize(buffer, bytes_written);
-* auto [x, y] = d.to<int, float>();
+* auto fields = d.to<std::tuple<int, float>>(); // std::optional<std::tuple<int, float>>
+* assert(fields);
+* auto& [x, y] = *fields;
 *
 * assert(x == 42);
 * assert(y == 3.14f);
@@ -76,8 +82,8 @@
 *       License changed from CC BY-ND 4.0 to MIT.
 *       Library renamed from `ser` to `eser`
 */
-#ifndef ESER_BINARY_BINARY_HPP_
-#define ESER_BINARY_BINARY_HPP_
+#ifndef ESER_FLAT_BINARY_HPP_
+#define ESER_FLAT_BINARY_HPP_
 #include "serializer.hpp"
 #include "deserializer.hpp"
-#endif // ESER_BINARY_BINARY_HPP_
+#endif // ESER_FLAT_BINARY_HPP_

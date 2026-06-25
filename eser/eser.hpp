@@ -18,7 +18,7 @@
 * ## Submodules
 *
 * - @ref eser_tools "eser_tools" : Utility components and type traits used across serialization tasks.
-* - @ref eser_binary "eser_binary" : High-performance binary serialization and deserialization utilities.
+* - @ref eser_flat "eser_flat" : High-performance binary serialization and deserialization utilities.
 *
 * ## Features
 *
@@ -32,7 +32,7 @@
 * ```cpp
 * #include "eser/eser.hpp"
 *
-* using namespace eser::binary;
+* using namespace eser::flat;
 *
 * int a = 42;
 * float b = 3.14f;
@@ -43,13 +43,15 @@
 * size_t written = s.to(buffer);
 *
 * auto d = deserialize(buffer, written);
-* auto [x, y] = d.to<int, float>();
+* auto fields = d.to<std::tuple<int, float>>(); // std::optional<std::tuple<int, float>>
+* assert(fields);
+* auto& [x, y] = *fields;
 *
 * assert(x == 42);
 * assert(y == 3.14f);
 * ```
 *
-* @note All serialization in the binary module assumes little-endian encoding.
+* @note Wire byte order is a compile-time policy (`eser::tools::endianness`), little-endian by default.
 *
 * @author Mark Tikhonov <mtik.philosopher@gmail.com>
 *
@@ -63,5 +65,5 @@
 #ifndef ESER_HPP_
 #define ESER_HPP_
 #include "tools/tools.hpp"
-#include "binary/binary.hpp"
+#include "flat/flat.hpp"
 #endif // ESER_HPP_

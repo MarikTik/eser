@@ -3,9 +3,9 @@
 *
 * @brief Provides a utility class for converting C++ objects and arrays into raw byte streams.
 *
-* @ingroup eser_binary eser::binary
+* @ingroup eser_flat eser::flat
 *
-* This file defines the `eser::binary::serializer` class template, which allows efficient
+* This file defines the `eser::flat::serializer` class template, which allows efficient
 * serialization of:
 *
 * - Scalar types (integers, floats, enums)
@@ -19,9 +19,9 @@
 *
 * ## Endianness
 *
-* All serialization operations assume **little-endian encoding.** This is consistent with
-* most modern architectures (e.g. x86, ARM). Multi-byte values serialized on one platform
-* may require conversion before deserialization on architectures with different endianness.
+* The wire byte order is a compile-time policy (`Wire`, **little-endian by default**). Pass
+* `endianness::big` to write network byte order. Scalars are byte-reversed via `if constexpr`
+* only when the wire order differs from the host; raw structs are restricted to the native order.
 *
 * ## Buffer Safety
 *
@@ -42,9 +42,9 @@
 * ## Example Usage
 *
 * ```cpp
-* #include "eser/binary/serializer.hpp"
+* #include "eser/flat/serializer.hpp"
 *
-* using namespace ser::binary;
+* using namespace eser::flat;
 *
 * int a = 42;
 * float b = 3.14f;
@@ -72,8 +72,8 @@
 *       License changed from CC BY-ND 4.0 to MIT.
 *       Library renamed from `ser` to `eser`
 */
-#ifndef ESER_BINARY_SERIALIZER_HPP_
-#define ESER_BINARY_SERIALIZER_HPP_
+#ifndef ESER_FLAT_SERIALIZER_HPP_
+#define ESER_FLAT_SERIALIZER_HPP_
 #include <type_traits>
 #include <tuple>
 #include <cassert>
@@ -81,28 +81,33 @@
 #include <cstdint>
 #include <cstddef>
 #include "../tools/byte.hpp"
-namespace eser::binary{
-    namespace __details{
+#include "../tools/endianness.hpp"
+namespace eser::flat{
+    using tools::endianness;
+
+    namespace details{
         /**
         * @brief Internal method to serialize an array.
         *
         * This method serializes an array into the byte stream.
         *
+        * @tparam Wire The byte order written to the stream.
         * @tparam Vector The array type to serialize.
         * @param buffer A pointer to the output byte stream.
         * @param size The remaining size of the output buffer.
         * @param vector The array to serialize.
         * @return The number of bytes written to the buffer.
         */
-        template<typename Vector, std::enable_if_t<std::is_array_v<Vector>, bool> = true>
+        template<endianness Wire, typename Vector, std::enable_if_t<std::is_array_v<Vector>, bool> = true>
         std::size_t serialize_impl(std::byte *&buffer, std::size_t &size, const Vector& vector);
         
         /**
         * @brief Internal method to serialize a scalar value.
         *
-        * Serializes a single scalar value (integer, float, etc.) into the byte stream
-        * using little-endian byte ordering.
+        * Serializes a single scalar value (integer, float, etc.) into the byte stream,
+        * byte-reversed when `Wire` differs from the host byte order.
         *
+        * @tparam Wire The byte order written to the stream.
         * @tparam Scalar A trivially copyable arithmetic type.
         * @param buffer A pointer to the output byte stream as `std::byte*`.
         * @param size Reference to the remaining size of the output buffer in bytes.
@@ -111,7 +116,7 @@ namespace eser::binary{
         *
         * @note The caller must ensure that `size` is at least `sizeof(Scalar)`.
         */
-        template<typename Scalar, std::enable_if_t<std::is_arithmetic_v<Scalar>, bool> = true>
+        template<endianness Wire, typename Scalar, std::enable_if_t<std::is_arithmetic_v<Scalar>, bool> = true>
         std::size_t serialize_impl(std::byte *&buffer, std::size_t &size, Scalar scalar);
         
         /**
@@ -119,13 +124,14 @@ namespace eser::binary{
         *
         * This method serializes an enum value into the byte stream.
         *
+        * @tparam Wire The byte order written to the stream.
         * @tparam Enum The enum type to serialize.
         * @param buffer A pointer to the output byte stream.
         * @param size The remaining size of the output buffer.
         * @param enum_member The enum value to serialize.
         * @return The number of bytes written to the buffer.
         */
-        template<typename Enum, std::enable_if_t<std::is_enum_v<Enum>, bool> = true>
+        template<endianness Wire, typename Enum, std::enable_if_t<std::is_enum_v<Enum>, bool> = true>
         std::size_t serialize_impl(std::byte *&buffer, std::size_t &size, Enum enum_member);
         
         /**
@@ -133,6 +139,8 @@ namespace eser::binary{
         *
         * This method serializes a trivially copyable struct into the byte stream.
         *
+        * @tparam Wire The byte order written to the stream. A struct may only be serialized when
+        *              `Wire` equals the host byte order (raw bytes cannot be byte-swapped).
         * @tparam Struct The struct type to serialize.
         * @param buffer A pointer to the output byte stream.
         * @param size The remaining size of the output buffer.
@@ -140,7 +148,8 @@ namespace eser::binary{
         * @return The number of bytes written to the buffer.
         */
         template<
-        typename Struct, 
+        endianness Wire,
+        typename Struct,
         std::enable_if_t<
         std::is_class_v<Struct> and
         std::is_trivially_copyable_v<Struct>, bool
@@ -154,8 +163,13 @@ namespace eser::binary{
     *
     * The serializer supports converting multiple types and arrays into a raw byte stream.
     * It ensures that data is correctly interpreted and converted into the byte stream.
+    *
+    * @tparam Wire The byte order written to the stream (default `endianness::little`). When it
+    *              differs from the host order, scalar fields are byte-reversed; trivially-copyable
+    *              structs may then not be serialized (raw bytes cannot be swapped).
+    * @tparam T... The types held for serialization.
     */
-    template<typename ...T>
+    template<endianness Wire, typename ...T>
     class serializer{
     public:
         /**
@@ -164,14 +178,14 @@ namespace eser::binary{
         * Serializes the values held in the serializer instance into a contiguous
         * byte stream, starting at the memory location specified by `buffer`.
         *
-        * The serialization process writes objects into the buffer in little-endian
-        * byte order. Scalars, arrays, enums, and trivially copyable structs are
-        * all supported.
+        * The serialization process writes objects into the buffer in the `Wire` byte
+        * order (little-endian by default). Scalars, arrays, enums, and trivially copyable
+        * structs are all supported.
         *
         * ## Usage
         *
         * ```cpp
-        * using namespace ser::binary;
+        * using namespace eser::flat;
         *
         * auto s = serialize(42, 3.14f);
         *
@@ -202,7 +216,7 @@ namespace eser::binary{
         * ## Usage
         *
         * ```cpp
-        * using namespace ser::binary;
+        * using namespace eser::flat;
         *
         * auto s = serialize(42, 3.14f);
         *
@@ -236,7 +250,7 @@ namespace eser::binary{
         * ## Usage
         *
         * ```cpp
-        * using namespace ser::binary;
+        * using namespace eser::flat;
         *
         * auto s = serialize(42, 3.14f);
         *
@@ -269,7 +283,7 @@ namespace eser::binary{
         * ## Usage
         *
         * ```cpp
-        * using namespace ser::binary;
+        * using namespace eser::flat;
         *
         * auto s = serialize(42, 3.14f);
         *
@@ -307,32 +321,35 @@ namespace eser::binary{
         *
         * This friend function allows the `serialize` function to access the private constructor.
         *
+        * @tparam W The byte order to serialize with.
         * @tparam U... The types to serialize.
         * @param args The values to serialize.
         * @return A `serializer` instance.
         */
-        template<typename ...U>
-        friend constexpr serializer<U...> serialize(U&&... args);
+        template<endianness W, typename ...U>
+        friend constexpr serializer<W, U...> serialize(U&&... args);
     };
-    
+
     /**
     * @brief Factory function to create a serializer instance holding the given arguments.
     *
-    * Constructs a `serializer<T...>` object, capturing the provided arguments
+    * Constructs a `serializer<Wire, T...>` object, capturing the provided arguments
     * (usually by value or reference depending on perfect forwarding).
     *
+    * @tparam Wire The byte order to serialize with (default `endianness::little`). Provide it
+    *              explicitly to write a big-endian stream, e.g. `serialize<endianness::big>(a, b)`.
     * @tparam T... The deduced types of the arguments.
     * @param args The arguments to be serialized.
     * @return A `serializer` instance initialized with the provided arguments.
     */
-    template <typename... T>
-    constexpr serializer<T...> serialize(T &&...args)
+    template <endianness Wire = endianness::little, typename... T>
+    constexpr serializer<Wire, T...> serialize(T &&...args)
     {
         static_assert(sizeof...(T) > 0, "At least one type must be specified");
-        return serializer<T...>(std::forward<T>(args)...);
+        return serializer<Wire, T...>(std::forward<T>(args)...);
     }
     
-} // eser::binary
+} // eser::flat
 
 #include "serializer.tpp"
-#endif // ESER_BINARY_SERIALIZER_HPP_
+#endif // ESER_FLAT_SERIALIZER_HPP_

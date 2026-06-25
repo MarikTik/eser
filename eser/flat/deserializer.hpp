@@ -3,14 +3,14 @@
 *
 * @brief Provides a deserialization utility for reconstructing objects and arrays from byte streams.
 *
-* @ingroup eser_binary eser::binary
+* @ingroup eser_flat eser::flat
 *
-* This file defines the `eser::binary::deserializer` class, which allows efficient deserialization
+* This file defines the `eser::flat::deserializer` class, which allows efficient deserialization
 * of data from a byte array into standard C++ types such as integers, floating-point numbers,
-* and arrays. The deserialization process assumes little-endian encoding.
+* and arrays. The wire byte order is a compile-time policy (`Wire`, little-endian by default).
 *
 * @note The deserializer is not thread-safe.
-* @note Currently supports only little-endian transformations.
+* @note The wire byte order is selected via the `Wire` template parameter; see endianness.hpp.
 *
 * @author Mark Tikhonov <mtik.philosopher@gmail.com>
 *
@@ -26,17 +26,36 @@
 * - 2025-08-05
 *       License changed from CC BY-ND 4.0 to MIT.
 *       Library renamed from `ser` to `eser`
+* - 2026-06-24
+*       Every `to()` overload now returns `std::optional<...>` and is `noexcept`:
+*       it yields `std::nullopt` when the buffer holds fewer than the required
+*       bytes, and the engaged value otherwise. The silent zero-fill ("best-fill")
+*       behavior was removed.
+*
+*       `to()` became single-parameter ("you get the type you name"): the variadic
+*       form was dropped. Read several fields by naming a `std::tuple`, e.g.
+*       `to<std::tuple<int, float>>()`. The scalar and trivially-copyable-struct
+*       overloads were merged into one trivially-copyable, non-array, non-tuple
+*       overload.
+*
+*       Added the `Wire` endianness policy: `deserializer<Wire>` byte-reverses scalars when
+*       `Wire` differs from the host order; structs are restricted to native-endian wires.
 */
-#ifndef ESER_BINARY_DESERIALIZER_HPP_
-#define ESER_BINARY_DESERIALIZER_HPP_
+#ifndef ESER_FLAT_DESERIALIZER_HPP_
+#define ESER_FLAT_DESERIALIZER_HPP_
 #include "../tools/byte.hpp"
+#include "../tools/traits.hpp"
+#include "../tools/endianness.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
 #include <tuple>
 #include <array>
+#include <optional>
 
-namespace eser::binary{
+namespace eser::flat{
+    using tools::endianness;
+
     /**
     * @class deserializer
     * @brief A utility class for deserializing data from a byte stream.
@@ -46,82 +65,63 @@ namespace eser::binary{
     * 
     * @note creation of deserilizer objects should be done through the `deserialize` function.
     * @note using methods `to` shifts the internal pointer by the number of bytes read,
-    * so full deserialization invalidates the deserializer object. 
+    * so full deserialization invalidates the deserializer object.
+    * @note `to()` is single-parameter: you get the type you name. To read several fields
+    * in one call, name a `std::tuple`, e.g. `to<std::tuple<int, float>>()`.
+    *
+    * @tparam Wire The byte order of the stream being read (default `endianness::little`). When it
+    *              differs from the host order, scalar fields are byte-reversed; trivially-copyable
+    *              structs may then not be read (raw bytes cannot be swapped).
     */
+    template<endianness Wire = endianness::little>
     class deserializer{
     public:
         /**
-        * @brief Deserialize multiple values from the byte stream.
+        * @brief Deserialize a `std::tuple` of values from the byte stream.
         *
-        * This method reconstructs multiple values of specified types from the byte stream.
-        * If one of the types is an array, it will be deserialized as a `std::array`.
+        * Reconstructs each tuple element in order. This is the way to read several fields
+        * in a single call: name the fields as the tuple's element types. Arrays are read by
+        * naming `std::array` elements (not C-arrays, which are not valid tuple members).
         *
-        * @tparam T... The types to deserialize. Can include arrays.
-        * @return A tuple containing deserialized values, with arrays represented as `std::array`.
-        * @throws Assertion failure if the byte stream does not contain sufficient data.
-        * @note In release mode, the method will fill the remaining types with zeros if the data 
-        * length is insufficient.
+        * @tparam Tuple A `std::tuple<Es...>` whose elements are each deserializable
+        *               (scalar, enum, `std::array`, or trivially-copyable struct).
+        * @return `std::nullopt` if the buffer holds fewer than the required bytes
+        *         (`sizeof(Es) + ...`); otherwise an engaged optional holding the tuple.
         */
-        template<typename ...T, std::enable_if_t<(sizeof...(T) > 1), bool> = true>
-        [[nodiscard]] std::tuple<std::conditional_t<std::is_array_v<T>, std::array<std::remove_extent_t<T>, std::extent_v<T>>, T>...> to();
-        
-        /**
-        * @brief Deserialize a single array from the byte stream.
-        *
-        * This method reconstructs an array of the specified type from the byte stream.
-        *
-        * @tparam Vector The array type to deserialize.
-        * @return A `std::array` containing the deserialized values.
-        * @throws Assertion failure if the byte stream does not contain sufficient data for the array.
-        * @note In release mode, the method will fill the remaining array elements with zeros if the data
-        */
-        template <typename Vector, std::enable_if_t<std::is_array_v<Vector>, bool> = true>
-        [[nodiscard]] std::array<std::remove_extent_t<Vector>, std::extent_v<Vector>> to(); 
-        
-        /**
-        * @brief Deserialize a single value from the byte stream.
-        *
-        * This method reconstructs a single value of the specified type from the byte stream.
-        *
-        * @tparam Scalar A scalar type to deserialize.
-        * @return The deserialized value.
-        * @throws Assertion failure if the byte stream does not contain sufficient data for the value.
-        */
-        template<typename Scalar, std::enable_if_t<std::is_scalar_v<Scalar>, bool> = true>
-        [[nodiscard]] Scalar to();
+        template<typename Tuple, std::enable_if_t<tools::is_tuple_v<Tuple>, bool> = true>
+        [[nodiscard]] std::optional<Tuple> to() noexcept;
 
-        
         /**
-        * @brief Deserialize a single trivially copyable non-scalar, non-array object from the byte stream.
+        * @brief Deserialize a single trivially-copyable, non-array, non-tuple value.
         *
-        * This method reconstructs a trivially copyable object (e.g., a struct or POD type) from the byte stream.
-        * It assumes that the type is safe to copy with `memcpy` and has a fixed memory layout.
+        * Reconstructs one value of the named type from the byte stream by copying its bytes.
+        * This single overload covers scalars, enums, `std::array`, and trivially-copyable
+        * structs/PODs — every type that is safe to copy with `memcpy` and has a fixed layout.
+        *
+        * To read a fixed-size array, name a `std::array<U, N>` (C-arrays are intentionally not
+        * accepted: they cannot be returned by value and cannot be `std::tuple` elements).
         *
         * @tparam T The type to deserialize. Must be:
         *          - `std::is_trivially_copyable_v<T> == true`
-        *          - not a scalar type (e.g., int, float)
-        *          - not an array type
+        *          - not a C-array type (name a `std::array` instead)
+        *          - not a `std::tuple` (use the tuple overload)
         *
-        * @return The deserialized value of type `T`.
-        * 
-        * @throws Assertion failure if the byte stream contains fewer bytes than `sizeof(T)`.
-        *
-        * @note This overload complements the scalar and array specializations, enabling direct unpacking of user-defined
-        *       simple structs and POD types.
+        * @return `std::nullopt` if the buffer holds fewer than `sizeof(T)` bytes;
+        *         otherwise an engaged optional holding the deserialized value of type `T`.
         *
         * @code
-        * struct Point { int x, y; };
-        * static_assert(std::is_trivially_copyable_v<Point>);
+        * struct point { int x, y; };
+        * static_assert(std::is_trivially_copyable_v<point>);
         *
-        * auto point = deserializer.to<Point>();  // Reads 8 bytes (2 ints)
+        * auto p = deserializer.to<point>();  // Reads 8 bytes (2 ints) if available
         * @endcode
         */
         template<typename T, std::enable_if_t<
             std::is_trivially_copyable_v<T> &&
-            !std::is_scalar_v<T> &&
-            !std::is_array_v<T>, bool> = true>
-        [[nodiscard]] T to();
-        
+            !std::is_array_v<T> &&
+            !tools::is_tuple_v<T>, bool> = true>
+        [[nodiscard]] std::optional<T> to() noexcept;
+
     private:
         const std::byte *_data;       ///< Pointer to the byte stream.
         std::size_t _length;          ///< Length of the remaining data in the byte stream.
@@ -135,31 +135,35 @@ namespace eser::binary{
         * @param length Length of the byte stream.
         * @return A `deserializer` instance.
         */
-        friend constexpr deserializer deserialize(const std::byte *data, std::size_t length);
-        
+        template<endianness W>
+        friend constexpr deserializer<W> deserialize(const std::byte *data, std::size_t length);
+
         /**
-        * @brief Internal method to deserialize a single value.
+        * @brief Internal method to copy a single trivially-copyable value off the stream.
         *
-        * This method reconstructs a single value from the byte stream.
+        * Reads `sizeof(T)` bytes and advances the cursor. Used for scalars, enums,
+        * `std::array`, structs, and each element of a tuple. The caller guarantees the bytes
+        * exist (the public `to()` overloads pre-check the length).
         *
-        * @tparam T The type to deserialize.
+        * @tparam T The trivially-copyable type to read.
         * @return The deserialized value.
         */
         template<typename T>
-        std::enable_if_t<not std::is_array_v<T>, T> deserialize_impl();
-        
+        T deserialize_impl() noexcept;
+
         /**
-        * @brief Internal method to deserialize an array.
+        * @brief Tuple back-end for `to<std::tuple<Es...>>()`.
         *
-        * This method reconstructs an array of the specified type from the byte stream.
+        * Unwraps the tuple's element pack so the bytes-required check and the per-element
+        * reads can be expressed as fold expressions. The `type_identity` tag carries the
+        * tuple type without constructing one.
         *
-        * @tparam T The array type to deserialize.
-        * @return A `std::array` containing the deserialized values.
+        * @tparam Es The tuple's element types.
+        * @return `std::nullopt` if the buffer is too short; otherwise the engaged tuple.
         */
-        template<typename T>
-        std::enable_if_t<std::is_array_v<T>, std::array<std::remove_extent_t<T>, std::extent_v<T>>> 
-        deserialize_impl();
-        
+        template<typename... Es>
+        std::optional<std::tuple<Es...>> to_impl(tools::type_identity<std::tuple<Es...>>) noexcept;
+
         /**
         * @brief Construct a deserializer.
         *
@@ -176,24 +180,28 @@ namespace eser::binary{
     *
     * @param data Pointer to the byte stream.
     * @param length Length of the byte stream.
+    * @tparam Wire The byte order of the stream (default `endianness::little`). Provide it
+    *              explicitly to read a big-endian stream, e.g. `deserialize<endianness::big>(...)`.
     * @return A `deserializer` instance initialized with the provided byte stream.
     * @throws Assertion failure if the byte stream pointer is null.
     * @note The function does not take ownership of the byte stream.
     */
-    constexpr deserializer deserialize(const std::byte *data, std::size_t length);
-    
+    template<endianness Wire = endianness::little>
+    constexpr deserializer<Wire> deserialize(const std::byte *data, std::size_t length);
+
     /**
     * @brief Create a deserializer instance from a compile time byte array.
-    * @tparam Length The length of the byte array.
+    * @tparam Wire The byte order of the stream (default `endianness::little`).
+    * @tparam N The length of the byte array.
     * @param data The byte array.
     * @return A `deserializer` instance initialized with the provided byte array.
     * @throws Assertion failure if the byte array pointer is null.
     * @note The function does not take ownership of the byte array.
     */
-    template <size_t N>
-    constexpr deserializer deserialize(const std::byte (&data)[N])
+    template <endianness Wire = endianness::little, size_t N>
+    constexpr deserializer<Wire> deserialize(const std::byte (&data)[N])
     {
-        return deserialize(data, N);
+        return deserialize<Wire>(data, N);
     }
 
     /**
@@ -216,7 +224,8 @@ namespace eser::binary{
     *
     * @see deserialize(const std::byte*, std::size_t)
     */
-    constexpr deserializer deserialize(const std::uint8_t *data, std::size_t length);
+    template<endianness Wire = endianness::little>
+    constexpr deserializer<Wire> deserialize(const std::uint8_t *data, std::size_t length);
 
     /**
     * @brief Create a deserializer instance from a compile-time `uint8_t` byte array.
@@ -239,12 +248,12 @@ namespace eser::binary{
     * @see deserialize(const std::byte*, std::size_t)
     * @see deserialize(const std::byte(&)[N])
     */
-    template <size_t N>
-    constexpr deserializer deserialize(const std::uint8_t (&data)[N])
+    template <endianness Wire = endianness::little, size_t N>
+    constexpr deserializer<Wire> deserialize(const std::uint8_t (&data)[N])
     {
-        return deserialize(data, N);
+        return deserialize<Wire>(data, N);
     }
-} // namespace eser::binary
+} // namespace eser::flat
 
 #include "deserializer.tpp"
-#endif // ESER_BINARY_DESERIALIZER_HPP_
+#endif // ESER_FLAT_DESERIALIZER_HPP_
