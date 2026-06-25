@@ -69,6 +69,21 @@ namespace eser::flat{
     * @note `to()` is single-parameter: you get the type you name. To read several fields
     * in one call, name a `std::tuple`, e.g. `to<std::tuple<int, float>>()`.
     *
+    * @warning **Untrusted input.** This is a tagless codec: `to<T>()` reconstructs `T` from raw
+    *          bytes and only validates *length* (returning `std::nullopt` when too short). It does
+    *          **not** validate semantic invariants — that is the protocol layer's responsibility.
+    *          When parsing data from another device, mind the following:
+    *          - **Length is trusted.** Never construct a deserializer with a `length` larger than
+    *            the bytes you physically hold. A wire-supplied length (e.g. from a length prefix)
+    *            must be validated against the number of bytes actually received first, or `to<T>()`
+    *            will read out of bounds.
+    *          - **Pointers.** Never deserialize a type containing a pointer member — you would
+    *            reconstruct a raw pointer from attacker-controlled bytes.
+    *          - **`bool` in aggregates.** A standalone `to<bool>()` (and a `bool` tuple element) is
+    *            normalized so an out-of-range byte cannot form a trap value. A `bool` nested inside
+    *            a struct or `std::array` is copied wholesale and is **not** normalized; only feed
+    *            such types trusted/validated streams.
+    *
     * @tparam Wire The byte order of the stream being read (default `endianness::little`). When it
     *              differs from the host order, scalar fields are byte-reversed; trivially-copyable
     *              structs may then not be read (raw bytes cannot be swapped).
@@ -121,6 +136,8 @@ namespace eser::flat{
             !std::is_array_v<T> &&
             !tools::is_tuple_v<T>, bool> = true>
         [[nodiscard]] std::optional<T> to() noexcept;
+
+        
 
     private:
         const std::byte *_data;       ///< Pointer to the byte stream.
@@ -183,8 +200,13 @@ namespace eser::flat{
     * @tparam Wire The byte order of the stream (default `endianness::little`). Provide it
     *              explicitly to read a big-endian stream, e.g. `deserialize<endianness::big>(...)`.
     * @return A `deserializer` instance initialized with the provided byte stream.
-    * @throws Assertion failure if the byte stream pointer is null.
     * @note The function does not take ownership of the byte stream.
+    * @warning `length` is trusted and bounds every subsequent `to<T>()` read. Pass the number of
+    *          bytes you actually hold — never a larger value, and in particular never a length read
+    *          from the wire without first validating it against the bytes received, or reads will
+    *          run past the buffer.
+    * @warning `data` must be non-null; this is checked by `assert` (debug builds only) and is a
+    *          caller precondition, not a wire condition.
     */
     template<endianness Wire = endianness::little>
     constexpr deserializer<Wire> deserialize(const std::byte *data, std::size_t length);

@@ -76,30 +76,75 @@
 #define ESER_FLAT_SERIALIZER_HPP_
 #include <type_traits>
 #include <tuple>
+#include <array>
+#include <utility>
 #include <cassert>
 #include <cstring>
 #include <cstdint>
 #include <cstddef>
 #include "../tools/byte.hpp"
 #include "../tools/endianness.hpp"
+#include "../tools/traits.hpp"
 namespace eser::flat{
     using tools::endianness;
 
     namespace details{
         /**
-        * @brief Internal method to serialize an array.
+        * @brief Owned storage type for a `serialize()` argument.
         *
-        * This method serializes an array into the byte stream.
+        * `serialize()` captures its arguments by value (it must not alias or dangle against the
+        * caller's variables). This maps each deduced argument type to the value type stored in the
+        * serializer: references and cv-qualifiers are stripped, and a C-array `U[N]` becomes a
+        * `std::array<U, N>` (a raw array is neither copyable into a tuple nor returnable by value).
+        *
+        * @tparam T The deduced (possibly reference) argument type.
+        */
+        template<typename T> struct serialize_store_impl { using type = T; };
+        template<typename U, std::size_t N> struct serialize_store_impl<U[N]> {
+            using type = std::array<std::remove_cv_t<U>, N>;
+        };
+        template<typename T>
+        using serialize_store_t = typename serialize_store_impl<std::remove_cv_t<std::remove_reference_t<T>>>::type;
+
+        /**
+        * @brief Convert a forwarded argument into its owned @ref serialize_store_t value.
+        *
+        * Copies a C-array element-by-element into a `std::array`; otherwise constructs the stored
+        * value directly (copying an lvalue, moving an rvalue).
+        *
+        * @tparam Stored The owned storage type.
+        * @tparam Arg    The forwarded argument type.
+        * @param arg The argument to store.
+        * @return The owned value of type `Stored`.
+        */
+        template<typename Stored, typename Arg>
+        constexpr Stored to_stored(Arg&& arg)
+        {
+            if constexpr (tools::is_std_array_v<Stored> and std::is_array_v<std::remove_reference_t<Arg>>) {
+                Stored result{};
+                for (std::size_t i = 0; i < result.size(); ++i) result[i] = arg[i];
+                return result;
+            } else {
+                return Stored(std::forward<Arg>(arg));
+            }
+        }
+
+        /**
+        * @brief Internal method to serialize a `std::array`.
+        *
+        * Serializes the array element by element, so each element is endianness-converted on its
+        * own (a whole-array memcpy could not honor a non-native wire order). `serialize()` stores
+        * caller arrays as `std::array`, so C-arrays never reach this layer directly.
         *
         * @tparam Wire The byte order written to the stream.
-        * @tparam Vector The array type to serialize.
+        * @tparam Array The `std::array` type to serialize.
         * @param buffer A pointer to the output byte stream.
         * @param size The remaining size of the output buffer.
-        * @param vector The array to serialize.
+        * @param array The array to serialize.
         * @return The number of bytes written to the buffer.
         */
-        template<endianness Wire, typename Vector, std::enable_if_t<std::is_array_v<Vector>, bool> = true>
-        std::size_t serialize_impl(std::byte *&buffer, std::size_t &size, const Vector& vector);
+        template<endianness Wire, typename Array, std::enable_if_t<tools::is_std_array_v<Array>, bool> = true>
+        std::size_t serialize_impl(std::byte *&buffer, std::size_t &size, const Array& array);
         
         /**
         * @brief Internal method to serialize a scalar value.
@@ -152,7 +197,8 @@ namespace eser::flat{
         typename Struct,
         std::enable_if_t<
         std::is_class_v<Struct> and
-        std::is_trivially_copyable_v<Struct>, bool
+        std::is_trivially_copyable_v<Struct> and
+        not tools::is_std_array_v<Struct>, bool
         > = true
         >
         std::size_t serialize_impl(std::byte *&buffer, std::size_t &size, const Struct &str);
@@ -165,9 +211,10 @@ namespace eser::flat{
     * It ensures that data is correctly interpreted and converted into the byte stream.
     *
     * @tparam Wire The byte order written to the stream (default `endianness::little`). When it
-    *              differs from the host order, scalar fields are byte-reversed; trivially-copyable
-    *              structs may then not be serialized (raw bytes cannot be swapped).
-    * @tparam T... The types held for serialization.
+    *              differs from the host order, scalar fields are byte-reversed; non-neutral
+    *              trivially-copyable structs may then not be serialized (raw bytes cannot be swapped).
+    * @tparam T... The owned value types held for serialization (see the `serialize()` factory:
+    *              arguments are stored by value, with C-arrays normalized to `std::array`).
     */
     template<endianness Wire, typename ...T>
     class serializer{
@@ -304,49 +351,53 @@ namespace eser::flat{
         std::size_t to(std::uint8_t (&buffer)[N]) const;
         
     private:
-        std::tuple<T...> _args; ///< A tuple containing the values to serialize.
-        
-        
+        std::tuple<T...> _args; ///< The owned values to serialize.
+
+
         /**
         * @brief Private constructor to prevent direct instantiation.
         *
-        * This constructor is private to enforce the use of the `serialize` function.
+        * This constructor is private to enforce the use of the `serialize` function. It takes the
+        * already-owned storage values (the factory has converted arguments via @ref to_stored).
         *
-        * @param args The values to serialize.
+        * @param args The owned values to serialize.
         */
-        constexpr explicit serializer(T&&... args);
-        
+        constexpr explicit serializer(T... args);
+
         /**
         * @brief Friend function to create a serializer instance.
         *
         * This friend function allows the `serialize` function to access the private constructor.
         *
         * @tparam W The byte order to serialize with.
-        * @tparam U... The types to serialize.
+        * @tparam U... The deduced argument types to serialize.
         * @param args The values to serialize.
         * @return A `serializer` instance.
         */
         template<endianness W, typename ...U>
-        friend constexpr serializer<W, U...> serialize(U&&... args);
+        friend constexpr serializer<W, details::serialize_store_t<U>...> serialize(U&&... args);
     };
 
     /**
     * @brief Factory function to create a serializer instance holding the given arguments.
     *
-    * Constructs a `serializer<Wire, T...>` object, capturing the provided arguments
-    * (usually by value or reference depending on perfect forwarding).
+    * Captures each argument **by value** into the serializer (references and cv-qualifiers are
+    * stripped; C-arrays are stored as `std::array`). This makes the serializer safe to name and
+    * outlive its arguments, and gives it consistent value semantics regardless of whether an
+    * argument was an lvalue or an rvalue.
     *
     * @tparam Wire The byte order to serialize with (default `endianness::little`). Provide it
     *              explicitly to write a big-endian stream, e.g. `serialize<endianness::big>(a, b)`.
     * @tparam T... The deduced types of the arguments.
     * @param args The arguments to be serialized.
-    * @return A `serializer` instance initialized with the provided arguments.
+    * @return A `serializer` owning copies of the provided arguments.
     */
     template <endianness Wire = endianness::little, typename... T>
-    constexpr serializer<Wire, T...> serialize(T &&...args)
+    constexpr serializer<Wire, details::serialize_store_t<T>...> serialize(T &&...args)
     {
         static_assert(sizeof...(T) > 0, "At least one type must be specified");
-        return serializer<Wire, T...>(std::forward<T>(args)...);
+        return serializer<Wire, details::serialize_store_t<T>...>(
+            details::to_stored<details::serialize_store_t<T>>(std::forward<T>(args))...);
     }
     
 } // eser::flat

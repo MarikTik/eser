@@ -27,20 +27,17 @@
 #include "../tools/traits.hpp"
 #include "../tools/utils.hpp"
 #include "../tools/endianness.hpp"
+#include <limits>
 namespace eser::flat{
     namespace details{
-        template <endianness Wire, typename Vector, std::enable_if_t<std::is_array_v<Vector>, bool>>
-        std::size_t serialize_impl(std::byte *&buffer, std::size_t &size, const Vector& vector)
+        template <endianness Wire, typename Array, std::enable_if_t<tools::is_std_array_v<Array>, bool>>
+        std::size_t serialize_impl(std::byte *&buffer, std::size_t &size, const Array& array)
         {
-            //assert(size >= sizeof(Vector) && "Buffer size potentially insufficient for the entire array");
-            using type = std::remove_extent_t<Vector>;
-            constexpr std::size_t N = std::extent_v<Vector>;
             std::size_t total_bytes = 0;
+            for (const auto& element : array) {
+                std::size_t bytes = serialize_impl<Wire>(buffer, size, element);
 
-            for (std::size_t i = 0; i < N; ++i) {
-                std::size_t bytes = serialize_impl<Wire>(buffer, size, vector[i]);
-
-                if (bytes == 0 && sizeof(type) > 0){
+                if (bytes == 0 && sizeof(typename Array::value_type) > 0){
                     assert(false && "Buffer ran out during array element serialization");
                     break;
                 }
@@ -52,6 +49,9 @@ namespace eser::flat{
         template<endianness Wire, typename Scalar, std::enable_if_t<std::is_arithmetic_v<Scalar>, bool>>
         std::size_t serialize_impl(std::byte *&buffer, std::size_t &size, Scalar scalar)
         {
+            if constexpr (std::is_floating_point_v<Scalar>)
+                static_assert(std::numeric_limits<Scalar>::is_iec559,
+                    "[eser] floating-point serialization requires an IEEE-754 (iec559) representation");
             constexpr std::size_t scalar_size = sizeof(Scalar);
             //assert(scalar_size <= size && "Buffer size is insufficient for the scalar value");
             tools::apply_wire_endianness<Wire>(scalar); // by-value copy; convert to wire order
@@ -71,14 +71,15 @@ namespace eser::flat{
         typename Struct,
         std::enable_if_t<
         std::is_class_v<Struct> and
-        std::is_trivially_copyable_v<Struct>, bool
+        std::is_trivially_copyable_v<Struct> and
+        not tools::is_std_array_v<Struct>, bool
         >
         >
         std::size_t serialize_impl(std::byte *&buffer, std::size_t &size, const Struct &str){
-            static_assert(Wire == tools::host_endianness,
+            static_assert(Wire == tools::host_endianness or tools::is_endianness_neutral_v<Struct>,
                 "[eser] trivially-copyable structs are serialized as raw bytes and cannot be "
-                "byte-swapped; serialize with the native wire endianness or split the struct into "
-                "scalar fields");
+                "byte-swapped; serialize with the native wire endianness, split the struct into "
+                "scalar fields, or specialize is_endianness_neutral if the type is byte-only");
             constexpr std::size_t struct_size = sizeof(Struct);
             //assert(struct_size <= size && "Buffer size is insufficient for the struct");
             std::memcpy(static_cast<void*>(buffer), &str, struct_size);
@@ -121,8 +122,8 @@ namespace eser::flat{
     }
 
     template <endianness Wire, typename... T>
-    constexpr serializer<Wire, T...>::serializer(T &&...args)
-    : _args(std::forward<T>(args)...)
+    constexpr serializer<Wire, T...>::serializer(T... args)
+    : _args(std::move(args)...)
     {
     }
 } // namespace eser::flat

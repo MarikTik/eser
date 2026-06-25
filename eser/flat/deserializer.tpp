@@ -34,6 +34,7 @@
 #include <utility>
 #include <array>
 #include <cstring>
+#include <limits>
 namespace eser::flat{
     template<endianness Wire>
     template<typename Tuple, std::enable_if_t<tools::is_tuple_v<Tuple>, bool>>
@@ -71,8 +72,22 @@ namespace eser::flat{
     inline T deserializer<Wire>::deserialize_impl() noexcept
     {
         static_assert(std::is_trivially_copyable_v<T>, "deserialize_impl requires a trivially-copyable type");
+        if constexpr (std::is_floating_point_v<T>)
+            static_assert(std::numeric_limits<T>::is_iec559,
+                "[eser] floating-point deserialization requires an IEEE-754 (iec559) representation");
         T value {};
-        std::memcpy(&value, _data, sizeof(T));
+        if constexpr (std::is_same_v<T, bool>) {
+            // Read through an unsigned char and normalize: a wire byte other than 0/1 must not be
+            // materialized as a bool object, because a bool with a non-0/1 representation is a trap
+            // value and reading it is undefined behavior. Any non-zero byte deserializes to `true`.
+            // (This covers standalone `to<bool>()` and `bool` tuple elements; a `bool` nested inside
+            // a struct or std::array is copied wholesale and is NOT normalized — see the class docs.)
+            unsigned char raw = 0;
+            std::memcpy(&raw, _data, sizeof(raw));
+            value = (raw != 0);
+        } else {
+            std::memcpy(&value, _data, sizeof(T));
+        }
         _data += sizeof(T);
         _length -= sizeof(T);
         tools::apply_wire_endianness<Wire>(value); // convert from wire order to host order
