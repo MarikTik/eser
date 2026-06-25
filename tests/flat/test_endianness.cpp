@@ -4,11 +4,11 @@
 #include <array>
 #include "eser/flat/serializer.hpp"
 #include "eser/flat/deserializer.hpp"
-#include "eser/tools/fixed_string.hpp"
+#include "eser/utils/fixed_string.hpp"
 
 using namespace eser::flat;
-using eser::tools::endianness;
-using eser::tools::fixed_string;
+using eser::utils::endianness;
+using eser::utils::fixed_string;
 
 constexpr std::size_t EBUF = 64;
 static std::uint8_t e_buffer[EBUF];
@@ -19,7 +19,7 @@ TEST_CASE("host_endianness matches a runtime probe") {
     std::uint16_t one = 1;
     const auto* bytes = reinterpret_cast<const unsigned char*>(&one);
     const bool host_is_little = (bytes[0] == 1);
-    REQUIRE((eser::tools::host_endianness == endianness::little) == host_is_little);
+    REQUIRE((eser::utils::host_endianness == endianness::little) == host_is_little);
 }
 
 TEST_CASE("big-endian serialization writes most-significant byte first") {

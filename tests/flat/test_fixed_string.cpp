@@ -4,10 +4,10 @@
 #include <type_traits>
 #include "eser/flat/serializer.hpp"
 #include "eser/flat/deserializer.hpp"
-#include "eser/tools/fixed_string.hpp"
+#include "eser/utils/fixed_string.hpp"
 
 using namespace eser::flat;
-using namespace eser::tools;
+using namespace eser::utils;
 
 constexpr std::size_t BUF = 64;
 static std::uint8_t fs_buffer[BUF];
