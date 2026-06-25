@@ -30,6 +30,24 @@
 #include <limits>
 namespace eser::flat{
     namespace details{
+        template <endianness Wire, typename Vector, std::enable_if_t<std::is_array_v<Vector>, bool>>
+        std::size_t serialize_impl(std::byte *&buffer, std::size_t &size, const Vector& vector)
+        {
+            using type = std::remove_extent_t<Vector>;
+            constexpr std::size_t N = std::extent_v<Vector>;
+            std::size_t total_bytes = 0;
+            for (std::size_t i = 0; i < N; ++i) {
+                std::size_t bytes = serialize_impl<Wire>(buffer, size, vector[i]);
+
+                if (bytes == 0 && sizeof(type) > 0){
+                    assert(false && "Buffer ran out during array element serialization");
+                    break;
+                }
+                total_bytes += bytes;
+            }
+            return total_bytes;
+        }
+
         template <endianness Wire, typename Array, std::enable_if_t<tools::is_std_array_v<Array>, bool>>
         std::size_t serialize_impl(std::byte *&buffer, std::size_t &size, const Array& array)
         {
@@ -89,7 +107,7 @@ namespace eser::flat{
     } // namespace details
 
     template <endianness Wire, typename... T>
-    inline std::size_t serializer<Wire, T...>::to (std::byte *buffer, std::size_t size) const
+    inline std::size_t serializer<Wire, T...>::to (std::byte *buffer, std::size_t size) &&
     {
         using namespace details;
         constexpr std::size_t needed = tools::serialized_size_of<T...>();
@@ -103,27 +121,27 @@ namespace eser::flat{
     }
 
     template <endianness Wire, typename... T>
-    std::size_t serializer<Wire, T...>::to(std::uint8_t *buffer, std::size_t size) const
+    std::size_t serializer<Wire, T...>::to(std::uint8_t *buffer, std::size_t size) &&
     {
-        return to(static_cast<std::byte *>(static_cast<void*>(buffer)), size);
+        return std::move(*this).to(static_cast<std::byte *>(static_cast<void*>(buffer)), size);
     }
     template <endianness Wire, typename... T>
     template <size_t N>
-    inline std::size_t serializer<Wire, T...>::to(std::byte (&buffer)[N]) const
+    inline std::size_t serializer<Wire, T...>::to(std::byte (&buffer)[N]) &&
     {
-        return to(buffer, N);
+        return std::move(*this).to(buffer, N);
     }
 
     template <endianness Wire, typename... T>
     template <size_t N>
-    std::size_t serializer<Wire, T...>::to(std::uint8_t (&buffer)[N]) const
+    std::size_t serializer<Wire, T...>::to(std::uint8_t (&buffer)[N]) &&
     {
-        return to(static_cast<std::byte *>(static_cast<void *>(buffer)), N);
+        return std::move(*this).to(static_cast<std::byte *>(static_cast<void *>(buffer)), N);
     }
 
     template <endianness Wire, typename... T>
-    constexpr serializer<Wire, T...>::serializer(T... args)
-    : _args(std::move(args)...)
+    constexpr serializer<Wire, T...>::serializer(T&&... args)
+    : _args(std::forward<T>(args)...)
     {
     }
 } // namespace eser::flat
