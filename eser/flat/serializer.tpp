@@ -24,9 +24,9 @@
 #ifndef ESER_FLAT_SERIALIZER_TPP_
 #define ESER_FLAT_SERIALIZER_TPP_
 #include "serializer.hpp"
-#include "../tools/traits.hpp"
-#include "../tools/utils.hpp"
-#include "../tools/endianness.hpp"
+#include "../utils/traits.hpp"
+#include "size.hpp"
+#include "../utils/endianness.hpp"
 #include <limits>
 namespace eser::flat{
     namespace details{
@@ -48,7 +48,7 @@ namespace eser::flat{
             return total_bytes;
         }
 
-        template <endianness Wire, typename Array, std::enable_if_t<tools::is_std_array_v<Array>, bool>>
+        template <endianness Wire, typename Array, std::enable_if_t<utils::is_std_array_v<Array>, bool>>
         std::size_t serialize_impl(std::byte *&buffer, std::size_t &size, const Array& array)
         {
             std::size_t total_bytes = 0;
@@ -72,7 +72,7 @@ namespace eser::flat{
                     "[eser] floating-point serialization requires an IEEE-754 (iec559) representation");
             constexpr std::size_t scalar_size = sizeof(Scalar);
             //assert(scalar_size <= size && "Buffer size is insufficient for the scalar value");
-            tools::apply_wire_endianness<Wire>(scalar); // by-value copy; convert to wire order
+            utils::apply_wire_endianness<Wire>(scalar); // by-value copy; convert to wire order
             std::memcpy(static_cast<void*>(buffer), &scalar, scalar_size);
             buffer += scalar_size, size -= scalar_size;
             return scalar_size;
@@ -90,11 +90,11 @@ namespace eser::flat{
         std::enable_if_t<
         std::is_class_v<Struct> and
         std::is_trivially_copyable_v<Struct> and
-        not tools::is_std_array_v<Struct>, bool
+        not utils::is_std_array_v<Struct>, bool
         >
         >
         std::size_t serialize_impl(std::byte *&buffer, std::size_t &size, const Struct &str){
-            static_assert(Wire == tools::host_endianness or tools::is_endianness_neutral_v<Struct>,
+            static_assert(Wire == utils::host_endianness or utils::is_endianness_neutral_v<Struct>,
                 "[eser] trivially-copyable structs are serialized as raw bytes and cannot be "
                 "byte-swapped; serialize with the native wire endianness, split the struct into "
                 "scalar fields, or specialize is_endianness_neutral if the type is byte-only");
@@ -110,7 +110,7 @@ namespace eser::flat{
     inline std::size_t serializer<Wire, T...>::to (std::byte *buffer, std::size_t size) &&
     {
         using namespace details;
-        constexpr std::size_t needed = tools::serialized_size_of<T...>();
+        constexpr std::size_t needed = serialized_size_of<T...>();
         if (needed > size){
             assert(false && "Buffer size is insufficient for serialization");
             return 0;

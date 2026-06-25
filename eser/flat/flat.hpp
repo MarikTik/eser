@@ -27,12 +27,12 @@
 * - Trivially copyable scalars (integers, floats, enums)
 * - C-style arrays
 * - `std::array`
-* - `eser::tools::fixed_string<N>` — a fixed-capacity string field (read via `to<fixed_string<N>>()`)
+* - `eser::utils::fixed_string<N>` — a fixed-capacity string field (read via `to<fixed_string<N>>()`)
 * - Trivially copyable structs
 *
 * ## Endianness
 *
-* The wire byte order is a compile-time policy (`eser::tools::endianness`), defaulting to
+* The wire byte order is a compile-time policy (`eser::utils::endianness`), defaulting to
 * little-endian. Pass it explicitly — `serialize<endianness::big>(...)`,
 * `deserialize<endianness::big>(...)` — to read/write the other order; scalars are byte-reversed
 * via `if constexpr` only when the wire order differs from the host. Raw structs are restricted
@@ -86,4 +86,5 @@
 #define ESER_FLAT_BINARY_HPP_
 #include "serializer.hpp"
 #include "deserializer.hpp"
+#include "size.hpp"
 #endif // ESER_FLAT_BINARY_HPP_
