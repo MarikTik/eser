@@ -35,6 +35,7 @@
 #define ESER_TOOLS_FIXED_STRING_HPP_
 #include <cstddef>
 #include <string_view>
+#include "traits.hpp"
 
 namespace eser::tools{
     /**
@@ -115,7 +116,9 @@ namespace eser::tools{
         *
         * @warning The buffer is **not guaranteed to be null-terminated**: a string that fills all
         *          `N` bytes carries no terminator. Bound any read by @ref size or @ref capacity,
-        *          or use @ref view, rather than treating the result as a C string.
+        *          or use @ref view, rather than treating the result as a C string. Passing it to a
+        *          null-terminated C API (`strlen`, `printf("%s", ...)`, etc.) will read past the
+        *          `N` bytes into adjacent memory — a crash or information leak. Prefer @ref view.
         * @note The pointer refers into this object and is invalidated when it is destroyed or
         *       reassigned.
         */
@@ -161,6 +164,13 @@ namespace eser::tools{
     private:
         char _data[N]; ///< Inline character storage; bytes past the logical length are zero unless the string fills the field.
     };
+
+    /**
+    * @brief `fixed_string` is endianness-neutral: it is a sequence of single bytes, so it
+    *        round-trips identically under any wire byte order (no byte-swapping applies).
+    */
+    template<std::size_t N>
+    struct is_endianness_neutral<fixed_string<N>> : std::true_type {};
 } // namespace eser::tools
 
 #include "fixed_string.tpp"

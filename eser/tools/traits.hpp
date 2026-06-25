@@ -164,6 +164,37 @@ namespace eser::tools {
 
 
     /**
+    * @struct is_endianness_neutral
+    * @brief Marks a type whose byte order is irrelevant (it never needs byte-swapping).
+    *
+    * A type is endianness-neutral when its meaningful units are single bytes, so it round-trips
+    * identically under any wire byte order — e.g. a fixed-capacity character string. Such types are
+    * passed through unchanged by `apply_wire_endianness` even on a non-native wire, instead of being
+    * rejected like a general multi-byte struct.
+    *
+    * The primary template is `false`; specialize it (to `std::true_type`) for your own byte-only
+    * value types to allow them across a non-native wire.
+    *
+    * @tparam T The type to inspect.
+    *
+    * @see is_endianness_neutral_v
+    */
+    template <typename T>
+    struct is_endianness_neutral : std::false_type {};
+
+    /**
+    * @var is_endianness_neutral_v
+    * @brief Convenience variable template for `is_endianness_neutral<T>::value`.
+    *
+    * @tparam T The type to inspect.
+    *
+    * @see is_endianness_neutral
+    */
+    template <typename T>
+    inline constexpr bool is_endianness_neutral_v = is_endianness_neutral<T>::value;
+
+
+    /**
     * @brief Helper function to retrieve the underlying value of an enum.
     * 
     * This function template takes an enum value and returns its underlying type.

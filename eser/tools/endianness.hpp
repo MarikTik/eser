@@ -102,9 +102,10 @@ namespace eser::tools{
     * @brief Convert `value` between the wire byte order and the host byte order.
     *
     * A no-op when `Wire == host_endianness`. Otherwise:
+    * - endianness-neutral types (@ref is_endianness_neutral, e.g. byte-string fields) pass through;
     * - scalars, enums and floats are byte-reversed (@ref reverse_bytes);
     * - `std::array` elements are converted individually;
-    * - trivially-copyable structs are rejected (`static_assert`) — raw bytes carry no type
+    * - other trivially-copyable structs are rejected (`static_assert`) — raw bytes carry no type
     *   information to swap, so a non-native wire order would corrupt their members.
     *
     * @tparam Wire The byte order of the serialized stream.
@@ -116,7 +117,11 @@ namespace eser::tools{
     {
         if constexpr (Wire != host_endianness)
         {
-            if constexpr (is_std_array_v<T>)
+            if constexpr (is_endianness_neutral_v<T>)
+            {
+                // byte-only type: order is irrelevant, leave the bytes untouched
+            }
+            else if constexpr (is_std_array_v<T>)
             {
                 for (auto& element : value) apply_wire_endianness<Wire>(element);
             }
@@ -124,8 +129,9 @@ namespace eser::tools{
             {
                 static_assert(not std::is_class_v<T>,
                     "[eser] trivially-copyable structs are stored as raw bytes and cannot be "
-                    "byte-swapped for a non-native wire endianness; use a native-endianness codec "
-                    "or split the struct into scalar fields");
+                    "byte-swapped for a non-native wire endianness; use a native-endianness codec, "
+                    "split the struct into scalar fields, or specialize is_endianness_neutral if the "
+                    "type is byte-only");
                 reverse_bytes(value);
             }
         }
