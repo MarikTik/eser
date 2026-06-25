@@ -15,12 +15,12 @@
 * - 2026-06-24
 * -     Initial creation.
 */
-#ifndef ESER_TOOLS_FIXED_STRING_TPP_
-#define ESER_TOOLS_FIXED_STRING_TPP_
+#ifndef ESER_UTILS_FIXED_STRING_TPP_
+#define ESER_UTILS_FIXED_STRING_TPP_
 #include "fixed_string.hpp"
 #include <cassert>
 
-namespace eser::tools{
+namespace eser::utils{
     template<std::size_t N>
     constexpr fixed_string<N>::fixed_string() noexcept : _data{} {}
 
@@ -63,6 +63,6 @@ namespace eser::tools{
     {
         return not (*this == other);
     }
-} // namespace eser::tools
+} // namespace eser::utils
 
-#endif // ESER_TOOLS_FIXED_STRING_TPP_
+#endif // ESER_UTILS_FIXED_STRING_TPP_

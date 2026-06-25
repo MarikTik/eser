@@ -3,11 +3,11 @@
 *
 * @brief Byte-order policy: the `endianness` enum, host detection, and conversion helpers.
 *
-* @ingroup eser_tools
+* @ingroup eser_utils
 *
 * The codec is parameterized on a *wire* endianness chosen at compile time (little by default).
 * When the wire order differs from the host order, scalar fields are byte-reversed on the
-* serialize/deserialize boundary via @ref eser::tools::apply_wire_endianness. Trivially-copyable
+* serialize/deserialize boundary via @ref eser::utils::apply_wire_endianness. Trivially-copyable
 * structs are stored as raw bytes and therefore cannot be byte-swapped — converting them would
 * require knowing each member's type — so they are only permitted when the wire order matches the
 * host (enforced by `static_assert`).
@@ -31,13 +31,13 @@
 * -     Replaced the dead `host_is_little_endian` bool with an `endianness` enum, robust host
 *       detection, and the `reverse_bytes` / `apply_wire_endianness` conversion helpers.
 */
-#ifndef ESER_TOOLS_ENDIANNESS_HPP_
-#define ESER_TOOLS_ENDIANNESS_HPP_
+#ifndef ESER_UTILS_ENDIANNESS_HPP_
+#define ESER_UTILS_ENDIANNESS_HPP_
 #include <cstddef>
 #include <type_traits>
 #include "traits.hpp"
 
-namespace eser::tools{
+namespace eser::utils{
     /**
     * @enum endianness
     * @brief Byte order of a multi-byte scalar on the wire or on the host.
@@ -137,6 +137,6 @@ namespace eser::tools{
         }
         (void)value; // silence unused warning when Wire == host_endianness
     }
-} // namespace eser::tools
+} // namespace eser::utils
 
-#endif // ESER_TOOLS_ENDIANNESS_HPP_
+#endif // ESER_UTILS_ENDIANNESS_HPP_

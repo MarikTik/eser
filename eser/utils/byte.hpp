@@ -3,7 +3,7 @@
 *
 * @brief Toolchain requirements guard for `std::byte` (and C++17).
 *
-* @ingroup eser_tools
+* @ingroup eser_utils
 *
 * `eser` represents raw memory as `std::byte` and is written against C++17. This header is the
 * single place those two requirements are checked, so a violation fails with one clear message
@@ -33,8 +33,8 @@
 * -     Removed the undefined-behavior `std::byte` fallback; reduced to a requirements guard
 *       (C++17 + `std::byte`), with an MSVC-safe language-version check.
 */
-#ifndef ESER_TOOLS_BYTE_HPP_
-#define ESER_TOOLS_BYTE_HPP_
+#ifndef ESER_UTILS_BYTE_HPP_
+#define ESER_UTILS_BYTE_HPP_
 
 // MSVC reports C++17 via _MSVC_LANG unless /Zc:__cplusplus is set; prefer it when present.
 #if (defined(_MSVC_LANG) ? _MSVC_LANG : __cplusplus) < 201703L
@@ -47,4 +47,4 @@
     #error "[eser] std::byte is required but is not provided by <cstddef>; use a conforming C++17 standard library."
 #endif
 
-#endif // ESER_TOOLS_BYTE_HPP_
+#endif // ESER_UTILS_BYTE_HPP_

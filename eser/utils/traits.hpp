@@ -3,7 +3,7 @@
 *
 * @brief Provides custom type traits for template metaprogramming.
 *
-* @ingroup eser_tools
+* @ingroup eser_utils
 *
 * This file defines additional type traits outside of the C++ standard library.
 * These traits are designed for use in modern template metaprogramming,
@@ -37,7 +37,7 @@
 #include <array>       // For the std::array specialization of is_std_array
 #include <cstddef>     // For std::size_t
 
-namespace eser::tools {
+namespace eser::utils {
     /**
     * @struct is_unique
     * @brief Checks whether a pack of types is composed of distinct types.
@@ -265,6 +265,6 @@ namespace eser::tools {
     */
     template <class T>
     using type_identity_t = typename type_identity<T>::type;
-} // namespace eser::tools
+} // namespace eser::utils
 
 #endif // ESER_TRAITS_HPP_

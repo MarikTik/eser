@@ -3,9 +3,9 @@
 *
 * @brief Fixed-capacity, trivially-copyable string field.
 *
-* @ingroup eser_tools
+* @ingroup eser_utils
 *
-* This header defines `eser::tools::fixed_string`, an `N`-byte inline character buffer that
+* This header defines `eser::utils::fixed_string`, an `N`-byte inline character buffer that
 * represents a string as a fixed-size value. Because it is trivially copyable, it travels
 * through the serializer/deserializer paths unchanged: serializing one writes exactly `N` bytes,
 * and `deserialize(buffer).to<fixed_string<N>>()` reads them back.
@@ -31,13 +31,13 @@
 * - 2026-06-24
 * -     Initial creation.
 */
-#ifndef ESER_TOOLS_FIXED_STRING_HPP_
-#define ESER_TOOLS_FIXED_STRING_HPP_
+#ifndef ESER_UTILS_FIXED_STRING_HPP_
+#define ESER_UTILS_FIXED_STRING_HPP_
 #include <cstddef>
 #include <string_view>
 #include "traits.hpp"
 
-namespace eser::tools{
+namespace eser::utils{
     /**
     * @class fixed_string
     * @brief A fixed-capacity, trivially-copyable string occupying exactly `N` bytes.
@@ -171,7 +171,7 @@ namespace eser::tools{
     */
     template<std::size_t N>
     struct is_endianness_neutral<fixed_string<N>> : std::true_type {};
-} // namespace eser::tools
+} // namespace eser::utils
 
 #include "fixed_string.tpp"
-#endif // ESER_TOOLS_FIXED_STRING_HPP_
+#endif // ESER_UTILS_FIXED_STRING_HPP_

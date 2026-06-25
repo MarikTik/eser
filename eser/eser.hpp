@@ -17,7 +17,7 @@
 *
 * ## Submodules
 *
-* - @ref eser_tools "eser_tools" : Utility components and type traits used across serialization tasks.
+* - @ref eser_utils "eser_utils" : Utility components and type traits used across serialization tasks.
 * - @ref eser_flat "eser_flat" : High-performance binary serialization and deserialization utilities.
 *
 * ## Features
@@ -51,7 +51,7 @@
 * assert(y == 3.14f);
 * ```
 *
-* @note Wire byte order is a compile-time policy (`eser::tools::endianness`), little-endian by default.
+* @note Wire byte order is a compile-time policy (`eser::utils::endianness`), little-endian by default.
 *
 * @author Mark Tikhonov <mtik.philosopher@gmail.com>
 *
@@ -64,6 +64,6 @@
 */
 #ifndef ESER_HPP_
 #define ESER_HPP_
-#include "tools/tools.hpp"
+#include "utils/utils.hpp"
 #include "flat/flat.hpp"
 #endif // ESER_HPP_
