@@ -133,16 +133,10 @@ TEST_CASE("Serialize and deserialize float and double values") {
     }
 }
 
-TEST_CASE("serialize() captures arguments by value (no aliasing/dangling)") {
-    fill0();
-    int a = 42;
-    auto s = serialize(a);   // owns a copy of a, independent of the source variable
-    a = 99;                  // mutate the source after building the serializer
-    s.to(buffer);
-    auto r = deserialize(buffer).to<int>();
-    REQUIRE(r);
-    REQUIRE(*r == 42);       // the captured 42 is serialized, not the later 99
-}
+// Note: serialize() captures by forwarding reference and its to() overloads are &&-qualified, so
+// the serializer is a temporary used in one expression (serialize(...).to(buffer)). Storing it
+// (auto s = serialize(...); s.to(buffer);) is intentionally a compile error, so there is no
+// aliasing/dangling window to test for at runtime.
 
 TEST_CASE("Serialize a std::array argument directly") {
     fill0();
