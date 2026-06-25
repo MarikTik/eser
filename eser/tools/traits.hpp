@@ -33,6 +33,9 @@
 #define ESER_TRAITS_HPP_
 
 #include <type_traits> // For std::true_type, std::bool_constant, std::is_same_v
+#include <tuple>       // For the std::tuple specialization of is_tuple
+#include <array>       // For the std::array specialization of is_std_array
+#include <cstddef>     // For std::size_t
 
 namespace eser::tools {
     /**
@@ -81,8 +84,85 @@ namespace eser::tools {
     */
     template <typename... Ts>
     inline constexpr bool is_unique_v = is_unique<Ts...>::value;
-    
-    
+
+
+    /**
+    * @struct is_tuple
+    * @brief Detects whether a type is a `std::tuple` specialization.
+    *
+    * Primary template; inherits from `std::false_type` for every type that is not a
+    * `std::tuple`. The partial specialization below matches any `std::tuple<Ts...>`.
+    *
+    * The result is accessible via the `::value` member or via the `is_tuple_v` alias.
+    *
+    * @tparam T The type to inspect.
+    *
+    * @see is_tuple_v
+    */
+    template <typename T>
+    struct is_tuple : std::false_type {};
+
+    /**
+    * @brief Specialization of `is_tuple` matching any `std::tuple` instantiation.
+    *
+    * @tparam Ts The element types of the tuple.
+    */
+    template <typename... Ts>
+    struct is_tuple<std::tuple<Ts...>> : std::true_type {};
+
+    /**
+    * @var is_tuple_v
+    * @brief Convenience variable template for `is_tuple<T>::value`.
+    *
+    * Evaluates to `true` if `T` is a `std::tuple` specialization, `false` otherwise.
+    *
+    * @tparam T The type to inspect.
+    *
+    * @see is_tuple
+    */
+    template <typename T>
+    inline constexpr bool is_tuple_v = is_tuple<T>::value;
+
+
+    /**
+    * @struct is_std_array
+    * @brief Detects whether a type is a `std::array` specialization.
+    *
+    * Primary template; inherits from `std::false_type` for every type that is not a `std::array`.
+    * The partial specialization below matches any `std::array<T, N>`.
+    *
+    * The result is accessible via the `::value` member or via the `is_std_array_v` alias.
+    *
+    * @tparam T The type to inspect.
+    *
+    * @see is_std_array_v
+    */
+    template <typename T>
+    struct is_std_array : std::false_type {};
+
+    /**
+    * @brief Specialization of `is_std_array` matching any `std::array` instantiation.
+    *
+    * @tparam T The element type of the array.
+    * @tparam N The number of elements in the array.
+    */
+    template <typename T, std::size_t N>
+    struct is_std_array<std::array<T, N>> : std::true_type {};
+
+    /**
+    * @var is_std_array_v
+    * @brief Convenience variable template for `is_std_array<T>::value`.
+    *
+    * Evaluates to `true` if `T` is a `std::array` specialization, `false` otherwise.
+    *
+    * @tparam T The type to inspect.
+    *
+    * @see is_std_array
+    */
+    template <typename T>
+    inline constexpr bool is_std_array_v = is_std_array<T>::value;
+
+
     /**
     * @brief Helper function to retrieve the underlying value of an enum.
     * 

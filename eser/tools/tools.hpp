@@ -8,7 +8,8 @@
 * @ingroup eser
 *
 * The `eser_tools` group includes:
-* - Fallbacks like `byte.hpp` for missing standard library types
+* - A toolchain requirements guard (`byte.hpp`: C++17 + `std::byte`)
+* - The byte-order policy (`endianness.hpp`)
 * - Type traits for metaprogramming
 * - Miscellaneous utilities supporting serialization and embedded development
 *
@@ -32,4 +33,6 @@
 #include "byte.hpp"
 #include "utils.hpp"
 #include "traits.hpp"
+#include "endianness.hpp"
+#include "fixed_string.hpp"
 #endif // ESER_TOOLS_TOOLS_HPP_
