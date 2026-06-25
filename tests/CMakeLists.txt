@@ -8,4 +8,4 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(Catch2)
 
 
-add_subdirectory(binary)
+add_subdirectory(flat)

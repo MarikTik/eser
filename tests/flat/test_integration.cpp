@@ -1,9 +1,11 @@
 #include <catch2/catch_all.hpp>
-#include "eser/binary/serializer.hpp"
-#include "eser/binary/deserializer.hpp"
+#include "eser/flat/serializer.hpp"
+#include "eser/flat/deserializer.hpp"
 #include <limits>
 #include <cstdint>
-using namespace eser::binary;
+#include <tuple>
+#include <array>
+using namespace eser::flat;
 
 constexpr std::size_t BUFFER_SIZE = 200;
 static std::uint8_t buffer[BUFFER_SIZE];
@@ -18,13 +20,16 @@ TEST_CASE("Serialize and deserialize uint types") {
         std::uint8_t v = 10;
         serialize(v).to(buffer);
         auto r = deserialize(buffer).to<std::uint8_t>();
-        REQUIRE(r == v);
+        REQUIRE(r);
+        REQUIRE(*r == v);
     }
 
     SECTION("uint16_t") {
         std::uint16_t a = 1000, b = 2000;
         serialize(a, b).to(buffer);
-        auto [ra, rb] = deserialize(buffer).to<std::uint16_t, std::uint16_t>();
+        auto result = deserialize(buffer).to<std::tuple<std::uint16_t, std::uint16_t>>();
+        REQUIRE(result);
+        auto& [ra, rb] = *result;
         REQUIRE(ra == a);
         REQUIRE(rb == b);
     }
@@ -32,7 +37,9 @@ TEST_CASE("Serialize and deserialize uint types") {
     SECTION("uint32_t") {
         std::uint32_t a = 100000, b = 200000, c = 300000;
         serialize(a, b, c).to(buffer);
-        auto [ra, rb, rc] = deserialize(buffer).to<std::uint32_t, std::uint32_t, std::uint32_t>();
+        auto result = deserialize(buffer).to<std::tuple<std::uint32_t, std::uint32_t, std::uint32_t>>();
+        REQUIRE(result);
+        auto& [ra, rb, rc] = *result;
         REQUIRE(ra == a);
         REQUIRE(rb == b);
         REQUIRE(rc == c);
@@ -41,7 +48,9 @@ TEST_CASE("Serialize and deserialize uint types") {
     SECTION("uint64_t") {
         std::uint64_t a = 1e12, b = 2e12, c = 3e12, d = 4e12;
         serialize(a, b, c, d).to(buffer);
-        auto [ra, rb, rc, rd] = deserialize(buffer).to<std::uint64_t, std::uint64_t, std::uint64_t, std::uint64_t>();
+        auto result = deserialize(buffer).to<std::tuple<std::uint64_t, std::uint64_t, std::uint64_t, std::uint64_t>>();
+        REQUIRE(result);
+        auto& [ra, rb, rc, rd] = *result;
         REQUIRE(ra == a);
         REQUIRE(rb == b);
         REQUIRE(rc == c);
@@ -53,7 +62,9 @@ TEST_CASE("Serialize and deserialize bool values") {
     fill0();
     bool a = true, b = false;
     serialize(a, b).to(buffer);
-    auto [ra, rb] = deserialize(buffer).to<bool, bool>();
+    auto result = deserialize(buffer).to<std::tuple<bool, bool>>();
+    REQUIRE(result);
+    auto& [ra, rb] = *result;
     REQUIRE(ra == a);
     REQUIRE(rb == b);
 }
@@ -63,7 +74,9 @@ TEST_CASE("Serialize and deserialize signed ints") {
     SECTION("int8_t") {
         std::int8_t a = -10, b = 10;
         serialize(a, b).to(buffer);
-        auto [ra, rb] = deserialize(buffer).to<std::int8_t, std::int8_t>();
+        auto result = deserialize(buffer).to<std::tuple<std::int8_t, std::int8_t>>();
+        REQUIRE(result);
+        auto& [ra, rb] = *result;
         REQUIRE(ra == a);
         REQUIRE(rb == b);
     }
@@ -72,13 +85,16 @@ TEST_CASE("Serialize and deserialize signed ints") {
         std::int16_t a = -1000;
         serialize(a).to(buffer);
         auto r = deserialize(buffer).to<std::int16_t>();
-        REQUIRE(r == a);
+        REQUIRE(r);
+        REQUIRE(*r == a);
     }
 
     SECTION("int32_t") {
         std::int32_t a = -100000, b = 100000, c = -200000;
         serialize(a, b, c).to(buffer);
-        auto [ra, rb, rc] = deserialize(buffer).to<std::int32_t, std::int32_t, std::int32_t>();
+        auto result = deserialize(buffer).to<std::tuple<std::int32_t, std::int32_t, std::int32_t>>();
+        REQUIRE(result);
+        auto& [ra, rb, rc] = *result;
         REQUIRE(ra == a);
         REQUIRE(rb == b);
         REQUIRE(rc == c);
@@ -87,7 +103,9 @@ TEST_CASE("Serialize and deserialize signed ints") {
     SECTION("int64_t") {
         std::int64_t a = -1e12, b = 1e12;
         serialize(a, b).to(buffer);
-        auto [ra, rb] = deserialize(buffer).to<std::int64_t, std::int64_t>();
+        auto result = deserialize(buffer).to<std::tuple<std::int64_t, std::int64_t>>();
+        REQUIRE(result);
+        auto& [ra, rb] = *result;
         REQUIRE(ra == a);
         REQUIRE(rb == b);
     }
@@ -99,13 +117,16 @@ TEST_CASE("Serialize and deserialize float and double values") {
         float f = 3.14f;
         serialize(f).to(buffer);
         auto rf = deserialize(buffer).to<float>();
-        REQUIRE(rf == Catch::Approx(f));
+        REQUIRE(rf);
+        REQUIRE(*rf == Catch::Approx(f));
     }
 
     SECTION("double") {
         double a = 3.14159, b = -2.71828, c = 1.61803;
         serialize(a, b, c).to(buffer);
-        auto [ra, rb, rc] = deserialize(buffer).to<double, double, double>();
+        auto result = deserialize(buffer).to<std::tuple<double, double, double>>();
+        REQUIRE(result);
+        auto& [ra, rb, rc] = *result;
         REQUIRE(ra == Catch::Approx(a));
         REQUIRE(rb == Catch::Approx(b));
         REQUIRE(rc == Catch::Approx(c));
@@ -117,7 +138,9 @@ TEST_CASE("Serialize and deserialize arrays") {
     const std::uint8_t a1[3] = {1, 2, 3};
     std::int32_t a2[4] = {-1444222555, 1444333222, -1, 2111999000};
     serialize(a1, a2).to(buffer);
-    auto [ra1, ra2] = deserialize(buffer).to<std::uint8_t[3], std::int32_t[4]>();
+    auto result = deserialize(buffer).to<std::tuple<std::array<std::uint8_t, 3>, std::array<std::int32_t, 4>>>();
+    REQUIRE(result);
+    auto& [ra1, ra2] = *result;
     for (int i = 0; i < 3; ++i) REQUIRE(ra1[i] == a1[i]);
     for (int i = 0; i < 4; ++i) REQUIRE(ra2[i] == a2[i]);
 }
@@ -130,7 +153,9 @@ TEST_CASE("Serialize and deserialize mixed types") {
     float f = 3.14159f;
     std::uint8_t arr[3] = {1, 2, 3};
     serialize(u, b, i, f, arr).to(buffer);
-    auto [ru, rb, ri, rf, rarr] = deserialize(buffer).to<std::uint32_t, bool, std::int16_t, float, std::uint8_t[3]>();
+    auto result = deserialize(buffer).to<std::tuple<std::uint32_t, bool, std::int16_t, float, std::array<std::uint8_t, 3>>>();
+    REQUIRE(result);
+    auto& [ru, rb, ri, rf, rarr] = *result;
     REQUIRE(ru == u);
     REQUIRE(rb == b);
     REQUIRE(ri == i);
@@ -148,7 +173,8 @@ TEST_CASE("Serialize and deserialize enum class") {
     test_enum e = test_enum::val1;
     serialize(e).to(buffer);
     auto r = deserialize(buffer).to<test_enum>();
-    REQUIRE(r == e);
+    REQUIRE(r);
+    REQUIRE(*r == e);
 }
 
 
@@ -170,8 +196,9 @@ TEST_CASE("Deserialize trivially copyable struct", "[deserializer][struct]") {
 
     // Deserialize it back
     auto des = deserialize(buffer, sizeof(buffer));
-    point p = des.to<point>();
+    auto p = des.to<point>();
 
-    REQUIRE(original == p);
-    REQUIRE(des.to<int>() == 0); // Ensure pointer has moved: no remaining int data
+    REQUIRE(p);
+    REQUIRE(original == *p);
+    REQUIRE_FALSE(des.to<int>().has_value()); // Cursor advanced past the struct: no bytes left
 }

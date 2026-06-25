@@ -1,7 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
-#include "eser/binary/serializer.hpp"
+#include "eser/flat/serializer.hpp"
 
-using namespace eser::binary;
+using namespace eser::flat;
 
 constexpr int BUFFER_SIZE = 200;
 std::uint8_t buffer[BUFFER_SIZE];

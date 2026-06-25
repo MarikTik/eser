@@ -1,9 +1,11 @@
 #include <catch2/catch_all.hpp>
 #include <limits>
 #include <cstdint>
-#include "eser/binary/deserializer.hpp"
+#include <tuple>
+#include <array>
+#include "eser/flat/deserializer.hpp"
 
-using namespace eser::binary;
+using namespace eser::flat;
 
 constexpr std::size_t BUFFER_SIZE = 200;
 static std::uint8_t buffer[BUFFER_SIZE];
@@ -18,8 +20,10 @@ TEST_CASE("Deserialize uint8_t values") {
     std::uint8_t v1 = 12, v2 = 255, v3 = 34, v4 = 78;
     buffer[0] = v1; buffer[1] = v2; buffer[2] = v3; buffer[3] = v4;
 
-    auto [a, b, c, d] = deserialize(buffer).to<std::uint8_t, std::uint8_t, std::uint8_t, std::uint8_t>();
+    auto result = deserialize(buffer).to<std::tuple<std::uint8_t, std::uint8_t, std::uint8_t, std::uint8_t>>();
 
+    REQUIRE(result);
+    auto& [a, b, c, d] = *result;
     REQUIRE(a == v1);
     REQUIRE(b == v2);
     REQUIRE(c == v3);
@@ -33,8 +37,10 @@ TEST_CASE("Deserialize uint16_t values") {
     buffer[2] = v2 & mask; buffer[3] = v2 >> 8;
     buffer[4] = v3 & mask; buffer[5] = v3 >> 8;
 
-    auto [a, b, c] = deserialize(buffer).to<std::uint16_t, std::uint16_t, std::uint16_t>();
+    auto result = deserialize(buffer).to<std::tuple<std::uint16_t, std::uint16_t, std::uint16_t>>();
 
+    REQUIRE(result);
+    auto& [a, b, c] = *result;
     REQUIRE(a == v1);
     REQUIRE(b == v2);
     REQUIRE(c == v3);
@@ -46,7 +52,10 @@ TEST_CASE("Deserialize uint32_t values") {
     for (int i = 0; i < 4; ++i) buffer[i] = v1 >> (8 * i);
     for (int i = 0; i < 4; ++i) buffer[4 + i] = v2 >> (8 * i);
 
-    auto [a, b] = deserialize(buffer).to<std::uint32_t, std::uint32_t>();
+    auto result = deserialize(buffer).to<std::tuple<std::uint32_t, std::uint32_t>>();
+
+    REQUIRE(result);
+    auto& [a, b] = *result;
     REQUIRE(a == v1);
     REQUIRE(b == v2);
 }
@@ -57,7 +66,9 @@ TEST_CASE("Deserialize uint64_t value") {
     for (int i = 0; i < 8; ++i) buffer[i] = v >> (8 * i);
 
     auto a = deserialize(buffer).to<std::uint64_t>();
-    REQUIRE(a == v);
+
+    REQUIRE(a);
+    REQUIRE(*a == v);
 }
 
 TEST_CASE("Deserialize int8_t values") {
@@ -65,7 +76,10 @@ TEST_CASE("Deserialize int8_t values") {
     std::int8_t v1 = -12, v2 = 127;
     buffer[0] = v1; buffer[1] = v2;
 
-    auto [a, b] = deserialize(buffer).to<std::int8_t, std::int8_t>();
+    auto result = deserialize(buffer).to<std::tuple<std::int8_t, std::int8_t>>();
+
+    REQUIRE(result);
+    auto& [a, b] = *result;
     REQUIRE(a == v1);
     REQUIRE(b == v2);
 }
@@ -77,7 +91,10 @@ TEST_CASE("Deserialize int16_t values") {
     buffer[2] = v2 & mask; buffer[3] = v2 >> 8;
     buffer[4] = v3 & mask; buffer[5] = v3 >> 8;
 
-    auto [a, b, c] = deserialize(buffer).to<std::int16_t, std::int16_t, std::int16_t>();
+    auto result = deserialize(buffer).to<std::tuple<std::int16_t, std::int16_t, std::int16_t>>();
+
+    REQUIRE(result);
+    auto& [a, b, c] = *result;
     REQUIRE(a == v1);
     REQUIRE(b == v2);
     REQUIRE(c == v3);
@@ -91,7 +108,10 @@ TEST_CASE("Deserialize int32_t values") {
         for (int j = 0; j < 4; ++j)
             buffer[i * 4 + j] = vals[i] >> (8 * j);
 
-    auto [a, b, c, d] = deserialize(buffer).to<std::int32_t, std::int32_t, std::int32_t, std::int32_t>();
+    auto result = deserialize(buffer).to<std::tuple<std::int32_t, std::int32_t, std::int32_t, std::int32_t>>();
+
+    REQUIRE(result);
+    auto& [a, b, c, d] = *result;
     REQUIRE(a == v1);
     REQUIRE(b == v2);
     REQUIRE(c == v3);
@@ -109,7 +129,10 @@ TEST_CASE("Deserialize int64_t values") {
         for (int j = 0; j < 8; ++j)
             buffer[i * 8 + j] = vals[i] >> (8 * j);
 
-    auto [a, b, c, d] = deserialize(buffer).to<std::int64_t, std::int64_t, std::int64_t, std::int64_t>();
+    auto result = deserialize(buffer).to<std::tuple<std::int64_t, std::int64_t, std::int64_t, std::int64_t>>();
+
+    REQUIRE(result);
+    auto& [a, b, c, d] = *result;
     REQUIRE(a == v1);
     REQUIRE(b == v2);
     REQUIRE(c == v3);
@@ -125,7 +148,10 @@ TEST_CASE("Deserialize float values") {
             buffer[i * 4 + j] = bits >> (8 * j);
     }
 
-    auto [a, b, c, d, e] = deserialize(buffer).to<float, float, float, float, float>();
+    auto result = deserialize(buffer).to<std::tuple<float, float, float, float, float>>();
+
+    REQUIRE(result);
+    auto& [a, b, c, d, e] = *result;
     REQUIRE(a == Catch::Approx(v[0]));
     REQUIRE(b == Catch::Approx(v[1]));
     REQUIRE(c == Catch::Approx(v[2]));
@@ -144,7 +170,10 @@ TEST_CASE("Deserialize double values") {
         buffer[8 + i] = bits2 >> (8 * i);
     }
 
-    auto [a, b] = deserialize(buffer).to<double, double>();
+    auto result = deserialize(buffer).to<std::tuple<double, double>>();
+
+    REQUIRE(result);
+    auto& [a, b] = *result;
     REQUIRE(a == Catch::Approx(d1));
     REQUIRE(b == Catch::Approx(d2));
 }
@@ -155,7 +184,10 @@ TEST_CASE("Deserialize bool values") {
     for (int i = 0; i < 4; ++i)
         buffer[i] = static_cast<std::uint8_t>(vals[i]);
 
-    auto [a, b, c, d] = deserialize(buffer).to<bool, bool, bool, bool>();
+    auto result = deserialize(buffer).to<std::tuple<bool, bool, bool, bool>>();
+
+    REQUIRE(result);
+    auto& [a, b, c, d] = *result;
     REQUIRE(a == vals[0]);
     REQUIRE(b == vals[1]);
     REQUIRE(c == vals[2]);
@@ -172,7 +204,10 @@ TEST_CASE("Deserialize int32_t[3] and int16_t[1] arrays") {
     buffer[12] = arr2[0] & mask;
     buffer[13] = arr2[0] >> 8;
 
-    auto [a1, a2] = deserialize(buffer).to<std::int32_t[3], std::int16_t[1]>();
+    auto result = deserialize(buffer).to<std::tuple<std::array<std::int32_t, 3>, std::array<std::int16_t, 1>>>();
+
+    REQUIRE(result);
+    auto& [a1, a2] = *result;
     REQUIRE(a1[0] == arr1[0]);
     REQUIRE(a1[1] == arr1[1]);
     REQUIRE(a1[2] == arr1[2]);
@@ -200,7 +235,10 @@ TEST_CASE("Deserialize mixed-type structure") {
         buffer[18 + j * 2 + 1] = arr[j] >> 8;
     }
 
-    auto [rc, rb, ri, rf, rd, rarr] = deserialize(buffer).to<char, bool, std::int32_t, float, double, std::int16_t[3]>();
+    auto result = deserialize(buffer).to<std::tuple<char, bool, std::int32_t, float, double, std::array<std::int16_t, 3>>>();
+
+    REQUIRE(result);
+    auto& [rc, rb, ri, rf, rd, rarr] = *result;
     REQUIRE(rc == c);
     REQUIRE(rb == b);
     REQUIRE(ri == i);
@@ -224,7 +262,65 @@ TEST_CASE("Deserialize enum types") {
     buffer[4] = e2_bits & mask;
     buffer[5] = e2_bits >> 8;
 
-    auto [r1, r2] = deserialize(buffer).to<int32_enum, int16_enum>();
+    auto result = deserialize(buffer).to<std::tuple<int32_enum, int16_enum>>();
+
+    REQUIRE(result);
+    auto& [r1, r2] = *result;
     REQUIRE(r1 == e1);
     REQUIRE(r2 == e2);
+}
+
+TEST_CASE("Strict length contract — nullopt when buffer is too short") {
+    fill();
+
+    SECTION("scalar one byte short") {
+        auto r = deserialize(buffer, sizeof(std::uint32_t) - 1).to<std::uint32_t>();
+        REQUIRE_FALSE(r.has_value());
+    }
+
+    SECTION("exact length succeeds") {
+        auto r = deserialize(buffer, sizeof(std::uint32_t)).to<std::uint32_t>();
+        REQUIRE(r.has_value());
+    }
+
+    SECTION("multi-type missing the last field") {
+        constexpr std::size_t required = sizeof(std::uint32_t) + sizeof(std::uint16_t);
+        auto r = deserialize(buffer, required - 1).to<std::tuple<std::uint32_t, std::uint16_t>>();
+        REQUIRE_FALSE(r.has_value());
+    }
+
+    SECTION("array that only partially fits yields nullopt, not a zero-padded array") {
+        // Only 2 of 3 int32 elements fit (12 bytes required, 11 available).
+        auto r = deserialize(buffer, 3 * sizeof(std::int32_t) - 1).to<std::array<std::int32_t, 3>>();
+        REQUIRE_FALSE(r.has_value());
+    }
+}
+
+TEST_CASE("Named std::array is deserialized directly") {
+    fill();
+    std::int32_t vals[3] = {7, -8, 9};
+    for (int i = 0; i < 3; ++i)
+        for (int j = 0; j < 4; ++j)
+            buffer[i * 4 + j] = vals[i] >> (8 * j);
+
+    auto arr = deserialize(buffer).to<std::array<std::int32_t, 3>>();
+
+    REQUIRE(arr);
+    REQUIRE((*arr)[0] == vals[0]);
+    REQUIRE((*arr)[1] == vals[1]);
+    REQUIRE((*arr)[2] == vals[2]);
+}
+
+TEST_CASE("Single-element tuple unpacks unambiguously") {
+    fill();
+    std::int32_t v = 1234567;
+    for (int j = 0; j < 4; ++j) buffer[j] = v >> (8 * j);
+
+    // The whole point of the serde-style API: a one-field read is spelled as a
+    // one-element tuple, so `auto [x]` is well-defined and never confused with to<T>().
+    auto result = deserialize(buffer).to<std::tuple<std::int32_t>>();
+
+    REQUIRE(result);
+    auto& [x] = *result;
+    REQUIRE(x == v);
 }
