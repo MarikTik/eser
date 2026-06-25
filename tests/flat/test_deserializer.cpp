@@ -194,6 +194,28 @@ TEST_CASE("Deserialize bool values") {
     REQUIRE(d == vals[3]);
 }
 
+TEST_CASE("Deserialize bool normalizes out-of-range wire bytes (no trap value)") {
+    fill();
+    buffer[0] = 0x00;
+    buffer[1] = 0x01;
+    buffer[2] = 0x02; // not 0/1: would be a trap bool if memcpy'd directly
+    buffer[3] = 0xFF;
+
+    REQUIRE(*deserialize(buffer + 0, 1).to<bool>() == false);
+    REQUIRE(*deserialize(buffer + 1, 1).to<bool>() == true);
+    REQUIRE(*deserialize(buffer + 2, 1).to<bool>() == true);  // normalized: any non-zero -> true
+    REQUIRE(*deserialize(buffer + 3, 1).to<bool>() == true);
+
+    // Same through the tuple path (each bool element is normalized individually).
+    auto t = deserialize(buffer).to<std::tuple<bool, bool, bool, bool>>();
+    REQUIRE(t);
+    auto& [a, b, c, d] = *t;
+    REQUIRE(a == false);
+    REQUIRE(b == true);
+    REQUIRE(c == true);
+    REQUIRE(d == true);
+}
+
 TEST_CASE("Deserialize int32_t[3] and int16_t[1] arrays") {
     fill();
     std::int32_t arr1[3] = {42, -42, 1000};

@@ -45,6 +45,15 @@ TEST_CASE("fixed_string filling all N bytes has no terminator but still views fu
     REQUIRE(s.size() == 5);
 }
 
+#ifdef NDEBUG
+// A source longer than the capacity asserts in debug; in release it truncates to N.
+TEST_CASE("fixed_string truncates a source longer than its capacity (release)") {
+    fixed_string<3> s{"hello"};
+    REQUIRE(s.view() == "hel");
+    REQUIRE(s.size() == 3);
+}
+#endif
+
 TEST_CASE("fixed_string does not require a null-terminated source") {
     // A string_view over a non-null-terminated range: raw[3] is 'd', not '\0'.
     const char raw[] = {'a', 'b', 'c', 'd'};

@@ -133,6 +133,35 @@ TEST_CASE("Serialize and deserialize float and double values") {
     }
 }
 
+TEST_CASE("serialize() captures arguments by value (no aliasing/dangling)") {
+    fill0();
+    int a = 42;
+    auto s = serialize(a);   // owns a copy of a, independent of the source variable
+    a = 99;                  // mutate the source after building the serializer
+    s.to(buffer);
+    auto r = deserialize(buffer).to<int>();
+    REQUIRE(r);
+    REQUIRE(*r == 42);       // the captured 42 is serialized, not the later 99
+}
+
+TEST_CASE("Serialize a std::array argument directly") {
+    fill0();
+    std::array<std::int32_t, 4> arr = {10, -20, 30, -40};
+    serialize(arr).to(buffer);
+    auto out = deserialize(buffer).to<std::array<std::int32_t, 4>>();
+    REQUIRE(out);
+    REQUIRE(*out == arr);
+}
+
+TEST_CASE("Nested std::array round-trips (recursive element handling)") {
+    fill0();
+    std::array<std::array<std::uint16_t, 2>, 3> nested = {{ {{1, 2}}, {{3, 4}}, {{5, 6}} }};
+    serialize(nested).to(buffer);
+    auto out = deserialize(buffer).to<std::array<std::array<std::uint16_t, 2>, 3>>();
+    REQUIRE(out);
+    REQUIRE(*out == nested);
+}
+
 TEST_CASE("Serialize and deserialize arrays") {
     fill0();
     const std::uint8_t a1[3] = {1, 2, 3};

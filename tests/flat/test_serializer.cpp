@@ -177,13 +177,19 @@ TEST_CASE("Serialize mixed types") {
             REQUIRE(buffer[18 + j * 2 + k] == ((arr[j] >> (8 * k)) & mask));
 }
 
-// TEST_CASE("Insufficient buffer causes assertion or failure") { // asserts false as intended
-//     std::uint8_t small_buffer[2];
-//     std::uint32_t data = 123456;
-//     // Depending on your error handling, this may throw, assert, or silently fail
-//     // Wrap with try-catch if your implementation uses exceptions.
-//     REQUIRE_THROWS(serialize(data).to(small_buffer, sizeof(small_buffer)));
-// }
+#ifdef NDEBUG
+// In debug builds an undersized buffer asserts (fail-loud). In release the precheck returns 0
+// and writes nothing (fail-safe) — this verifies the no-overflow guarantee on that path.
+TEST_CASE("Serialize into an undersized buffer writes nothing and returns 0 (release)") {
+    fill_buffer(); // 0xAB everywhere
+    std::uint32_t data = 0x11223344; // needs 4 bytes
+    std::size_t written = serialize(data).to(buffer, 3);
+    REQUIRE(written == 0);
+    REQUIRE(buffer[0] == 0xAB);
+    REQUIRE(buffer[1] == 0xAB);
+    REQUIRE(buffer[2] == 0xAB);
+}
+#endif
 
 TEST_CASE("Non-zero-initialized buffer remains intact outside serialized range") {
     fill_buffer(); // Should set whole buffer to 0xAB
