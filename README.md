@@ -16,9 +16,9 @@ It focuses on:
   - Scalar types (e.g., `int`, `float`)
   - C-style arrays (e.g., `int[4]`)
   - `std::array`
-  - Trivially copyable structs
-  - Enums and null-terminated C-strings
-- For now, Assumes **little-endian** byte order
+  - Trivially copyable structs and enums
+  - `eser::tools::fixed_string<N>` for fixed-capacity strings
+- Wire byte order is a compile-time policy (**little-endian** by default; see Endianness below)
 
 
 
@@ -26,9 +26,9 @@ It focuses on:
 ### Serialization
 
 ```cpp
-#include <eser/binary/serializer.hpp>
+#include <eser/flat/serializer.hpp>
 
-using namespace eser::binary;
+using namespace eser::flat;
 
 int id = 42;
 float temperature = 36.6f;
@@ -47,23 +47,27 @@ s.to(raw);
 
 ```cpp
 #include <array>
-#include "eser/binary/deserializer.hpp"
+#include "eser/flat/deserializer.hpp"
 
-using namespace eser::binary;
+using namespace eser::flat;
 
 std::byte buffer[64]{ /* previously filled with data */ };
 
 // Construct deserializer from a byte buffer
 auto d = deserialize(buffer);
 
-// Extract into typed values
-auto [id, temperature] = d.to<int, float>();
+// `to<T>()` returns std::optional<T>: nullopt when the buffer is too short.
+// Read several fields by naming a std::tuple.
+if (auto fields = d.to<std::tuple<int, float>>()) {
+    auto& [id, temperature] = *fields;
+    // ... use id, temperature
+}
 
 // For single values or arrays:
 
-int value = d.to<int>();
+std::optional<int> value = d.to<int>();
 
-auto array = d.to<int[4]>(); // Returns std::array<int, 4>
+auto array = d.to<std::array<int, 4>>(); // Returns std::optional<std::array<int, 4>>
 ```
 
 ### Example
@@ -83,8 +87,40 @@ std::byte buffer[64];
 s.to(buffer);
 
 auto d = deserialize(buffer);
-Message result = d.to<Message>();
+std::optional<Message> result = d.to<Message>();
 ```
+
+### Strings
+
+Strings are stored as a fixed-capacity `fixed_string<N>` field — `N` bytes on the wire, so the
+format stays compile-time sized. Shorter strings are null-padded; reading back yields a
+`std::string_view` (via `.view()`) that stops at the first null.
+
+The capacity `N` is part of the contract, not derived from the string. Pick it when the field
+has a fixed width independent of the content (e.g. a 16-byte name field), so both ends agree:
+
+```cpp
+#include "eser/tools/fixed_string.hpp"
+
+using eser::tools::fixed_string;
+
+std::byte buffer[64];
+serialize(fixed_string<16>{"sensor"}).to(buffer); // always 16 bytes, whatever the string
+
+auto name = deserialize(buffer).to<fixed_string<16>>(); // std::optional<fixed_string<16>>
+if (name) {
+    std::string_view sv = name->view(); // "sensor"
+}
+```
+
+A bare string literal also serializes directly, but the field is then exactly the literal's
+size (including its null), so the reader must use the matching width:
+
+```cpp
+serialize("sensor").to(buffer);                  // 7-byte field ("sensor" + '\0')
+auto s = deserialize(buffer).to<fixed_string<7>>();
+```
+
 ### 🧠 Use Cases
 - Embedded task parameter passing
 
@@ -95,7 +131,18 @@ Message result = d.to<Message>();
 
 ### 📌 Endianness
 
-Currently, binary serialization is little-endian only. On big-endian systems, convert data before/after.
+The wire byte order is a compile-time policy, defaulting to little-endian:
+
+```cpp
+serialize(a, b).to(buffer);                          // little-endian (default)
+serialize<endianness::big>(a, b).to(buffer);         // big-endian (network order)
+auto x = deserialize<endianness::big>(buffer).to<...>();
+```
+
+When the wire order differs from the host, scalar fields (and arrays of scalars) are byte-reversed
+via `if constexpr` — zero cost when they match. Trivially-copyable structs are serialized as raw
+bytes and therefore cannot be byte-swapped: they may only be used when the wire order matches the
+host (enforced by `static_assert`); split a struct into scalar fields if you need a non-native wire.
 
 ### ✅ Buffer Safety
 
