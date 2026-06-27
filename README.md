@@ -38,6 +38,7 @@ if (auto fields = deserialize(buffer).to<std::tuple<std::uint32_t, float>>()) {
 - [Serialization](#serialization)
 - [Deserialization](#deserialization)
 - [Strings (`fixed_string`)](#strings-fixed_string)
+- [Structs & trivially-copyable types](#structs--trivially-copyable-types)
 - [Endianness](#endianness)
 - [Buffer Sizing](#buffer-sizing)
 - [Edge Cases & Behavior](#edge-cases--behavior)
@@ -181,12 +182,17 @@ bytes than `T` requires, it returns `std::nullopt` and reads nothing — there i
 | Enums | `enum class cmd : std::uint8_t { ... }` | stored as the underlying integer |
 | `std::array` | `std::array<int, 4>`, nested arrays | serialized element-by-element |
 | C-arrays *(serialize input only)* | `int[4]`, `"literal"` | serialized element-wise (same wire bytes as `std::array`); read back as `std::array` |
-| Trivially-copyable structs / PODs | `struct vec3 { float x, y, z; };` | raw `memcpy` incl. padding; native-endian only (unless neutral) |
+| Trivially-copyable structs / PODs | `struct vec3 { float x, y, z; };` | raw `memcpy` incl. padding; native-endian only (unless neutral) — see [Structs & trivially-copyable types](#structs--trivially-copyable-types) |
 | `eser::utils::fixed_string<N>` | `fixed_string<16>` | fixed-capacity string field; endianness-neutral |
+| Other trivially-copyable library types | `std::bitset<N>`, `std::pair`*, `std::complex<T>` | work via the struct path **iff** trivially copyable on your toolchain (implementation-defined) |
 
 Every serialized type must satisfy `std::is_trivially_copyable_v<T>`. Types containing pointers,
 references, virtuals, or heap-owning members are **not** supported (and unsafe to send — see
 [Assumptions & Limitations](#assumptions--limitations)).
+
+\* `std::pair`/`std::tuple` of trivially-copyable members are trivially copyable but have
+**implementation-defined layout** (libstdc++ stores tuple members in reverse) — fine for a same-ABI
+round-trip, but do not assume a particular byte order of the members.
 
 ---
 
@@ -331,6 +337,56 @@ auto s = deserialize(buffer).to<fixed_string<7>>();
 
 > **Warning:** `data()` is not a C string when the field is full. Passing it to `strlen`,
 > `printf("%s", ...)`, etc. reads past `N` into adjacent memory (crash / info leak). Use `view()`.
+
+---
+
+## Structs & trivially-copyable types
+
+A struct is serialized by copying its **raw object representation** — `memcpy` of `sizeof(T)` bytes.
+That makes it fast and zero-transform, but it has consequences you must respect.
+
+**Allowed.** Any type where `std::is_trivially_copyable_v<T>` is `true` and that owns its bytes
+inline: plain structs of scalars/enums/arrays/other such structs, and trivially-copyable standard
+types like `std::array`, `std::bitset<N>`, `std::complex<T>`.
+
+```cpp
+struct pose { float x, y, z; std::uint8_t frame; };
+static_assert(std::is_trivially_copyable_v<pose>);
+
+serialize(pose{1.f, 2.f, 3.f, 0}).to(buffer);
+auto p = deserialize(buffer).to<pose>();
+
+std::bitset<48> flags;                 // a trivially-copyable bit container
+serialize(flags).to(buffer);
+auto f = deserialize(buffer).to<std::bitset<48>>();
+```
+
+**Not allowed / unsafe.** Types that are not trivially copyable won't compile (`static_assert`).
+Types that *are* trivially copyable but own resources indirectly — anything with a **pointer**,
+reference, or handle member — will compile but are unsafe to send: you would reconstruct a raw
+pointer from wire bytes. Never serialize those.
+
+**The padding / alignment / ABI contract.** Because the struct goes on the wire as its in-memory
+image:
+
+- **Padding bytes are included on the wire**, and their contents are *indeterminate* — so the same
+  logical value can produce different bytes. Don't hash, diff, or checksum a serialized struct and
+  expect determinism unless you zero-initialize and control every padding byte.
+- **The layout is compiler/ABI-dependent** (member order is fixed by you, but offsets, padding, and
+  alignment come from the ABI). A struct round-trips reliably only between endpoints built with the
+  **same ABI** (same compiler family, architecture, and packing). It is *not* a portable
+  cross-compiler/cross-language wire format.
+- **Implementation-defined types compound this.** `std::bitset<N>` is word-rounded
+  (`sizeof(std::bitset<7>) == 8` here, not 1) and its trivial-copyability isn't guaranteed by the
+  standard; `std::tuple`/`std::pair` may store members in a different order than declared. They work
+  for same-ABI round-trips but make no promise about the on-wire byte order of their parts.
+- Structs are **native-endian only** — a raw byte image can't be byte-swapped (see
+  [Endianness](#endianness)). Decompose into scalar fields if you need a non-native wire.
+
+**If you need a portable, stable layout**, don't serialize the struct directly — serialize its
+fields explicitly (`serialize(p.x, p.y, p.z, p.frame)`), which gives you a defined, padding-free,
+endianness-aware encoding. To catch accidental padding at compile time, you can guard with
+`static_assert(std::has_unique_object_representations_v<T>)`.
 
 ---
 

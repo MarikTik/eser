@@ -5,6 +5,8 @@
 #include <cstdint>
 #include <tuple>
 #include <array>
+#include <bitset>
+#include <type_traits>
 using namespace eser::flat;
 
 constexpr std::size_t BUFFER_SIZE = 200;
@@ -145,6 +147,22 @@ TEST_CASE("Serialize a std::array argument directly") {
     auto out = deserialize(buffer).to<std::array<std::int32_t, 4>>();
     REQUIRE(out);
     REQUIRE(*out == arr);
+}
+
+TEST_CASE("Serialize and deserialize std::bitset") {
+    // std::bitset is a trivially-copyable type on this toolchain, so it serializes as raw bytes
+    // through the struct path. (Its trivial-copyability and word-rounded size are
+    // implementation-defined; it is native-endian only, like any multi-byte struct.)
+    static_assert(std::is_trivially_copyable_v<std::bitset<40>>,
+                  "std::bitset must be trivially copyable on this toolchain to be serializable");
+    fill0();
+    std::bitset<40> b;
+    b.set(0); b.set(3); b.set(39);
+
+    serialize(b).to(buffer);
+    auto out = deserialize(buffer).to<std::bitset<40>>();
+    REQUIRE(out);
+    REQUIRE(*out == b);
 }
 
 TEST_CASE("Nested std::array round-trips (recursive element handling)") {
