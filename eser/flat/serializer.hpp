@@ -82,9 +82,9 @@
 #include <cstring>
 #include <cstdint>
 #include <cstddef>
-#include "../utils/byte.hpp"
+#include "../internal/byte.hpp"
 #include "../utils/endianness.hpp"
-#include "../utils/traits.hpp"
+#include "../internal/traits.hpp"
 namespace eser::flat{
     using utils::endianness;
 
@@ -118,7 +118,7 @@ namespace eser::flat{
         * @param array The array to serialize.
         * @return The number of bytes written to the buffer.
         */
-        template<endianness Wire, typename Array, std::enable_if_t<utils::is_std_array_v<Array>, bool> = true>
+        template<endianness Wire, typename Array, std::enable_if_t<internal::is_std_array_v<Array>, bool> = true>
         std::size_t serialize_impl(std::byte *&buffer, std::size_t &size, const Array& array);
 
         /**
@@ -173,7 +173,7 @@ namespace eser::flat{
         std::enable_if_t<
         std::is_class_v<Struct> and
         std::is_trivially_copyable_v<Struct> and
-        not utils::is_std_array_v<Struct>, bool
+        not internal::is_std_array_v<Struct>, bool
         > = true
         >
         std::size_t serialize_impl(std::byte *&buffer, std::size_t &size, const Struct &str);

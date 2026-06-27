@@ -29,7 +29,7 @@
 #define ESER_FLAT_SIZE_HPP_
 #include <type_traits>
 #include <cstddef>
-#include "../utils/traits.hpp"
+#include "../internal/traits.hpp"
 
 namespace eser::flat
 {
@@ -72,13 +72,13 @@ namespace eser::flat
             return sizeof(bare_t);
         }
         else if constexpr (std::is_same_v<std::decay_t<bare_t>, const char*>) {
-            static_assert(utils::always_false_v<bare_t>,
+            static_assert(internal::always_false_v<bare_t>,
                 "Runtime const char* cannot be used for compile-time size calculation. "
                 "Use fixed-size char arrays or std::string_view instead.");
             return 0;
         }
         else {
-            static_assert(utils::always_false_v<bare_t>,
+            static_assert(internal::always_false_v<bare_t>,
                 "Unsupported type for serialization size calculation.");
                 return 0;
         }

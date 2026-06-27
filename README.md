@@ -66,7 +66,10 @@ Two namespaces are used throughout:
 | Namespace | Contents |
 |---|---|
 | `eser::flat` | `serialize`, `deserialize`, `serializer`, `deserializer`, `serialized_size_of`, and the `endianness` alias |
-| `eser::utils` | `fixed_string`, `endianness`, and supporting type traits |
+| `eser::utils` | `fixed_string`, the `endianness` enum, and the `is_endianness_neutral` customization point |
+
+`eser::internal` (under `eser/internal/`) holds machinery you never include or name directly — the
+requirements guard, type traits, and byte-swapping helpers. It is **not** part of the public API.
 
 ---
 
@@ -74,8 +77,8 @@ Two namespaces are used throughout:
 
 - **C++17** or newer, with a conforming standard library that provides `std::byte`
   (`std::optional`, `std::string_view`, `std::tuple`, `std::array`).
-- A single requirements guard (`eser/utils/byte.hpp`) fails the build with one clear message if the
-  toolchain is pre-C++17 or lacks `std::byte`.
+- A single requirements guard (`eser/internal/byte.hpp`) fails the build with one clear message if
+  the toolchain is pre-C++17 or lacks `std::byte`.
 
 ---
 
@@ -549,17 +552,19 @@ A few contract tests cover release-only behavior (an undersized serialize buffer
 ```
 eser/
   eser.hpp                 # umbrella include (utils + flat)
-  flat/
-    flat.hpp               # aggregator for the codec
+  flat/                    # the codec
+    flat.hpp               # aggregator
     serializer.hpp/.tpp    # serialize() / serializer<Wire, T...>
     deserializer.hpp/.tpp  # deserialize() / deserializer<Wire>
-    size.hpp # compile-time wire size of the flat format
-  utils/
-    utils.hpp              # aggregator for utilities
-    byte.hpp               # C++17 + std::byte requirements guard
-    endianness.hpp         # endianness enum, host detection, conversion helpers
+    size.hpp               # serialized_size_of (compile-time wire size)
+  utils/                   # public utilities
+    utils.hpp              # aggregator
+    endianness.hpp         # endianness enum + is_endianness_neutral (customization point)
     fixed_string.hpp/.tpp  # fixed_string<N>
-    traits.hpp             # type traits (is_tuple, is_std_array, is_endianness_neutral, ...)
+  internal/                # implementation detail — not part of the public API
+    byte.hpp               # C++17 + std::byte requirements guard
+    traits.hpp             # type traits (is_tuple, is_std_array, type_identity, ...)
+    endianness.hpp         # host detection + byte-swapping (reverse_bytes, apply_wire_endianness)
 tests/flat/                # Catch2 test suite
 ```
 

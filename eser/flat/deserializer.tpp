@@ -29,7 +29,7 @@
 #ifndef ESER_FLAT_DESERIALIZER_TPP_
 #define ESER_FLAT_DESERIALIZER_TPP_
 #include "deserializer.hpp"
-#include "../utils/endianness.hpp"
+#include "../internal/endianness.hpp"
 #include <cassert>
 #include <utility>
 #include <array>
@@ -37,17 +37,17 @@
 #include <limits>
 namespace eser::flat{
     template<endianness Wire>
-    template<typename Tuple, std::enable_if_t<utils::is_tuple_v<Tuple>, bool>>
+    template<typename Tuple, std::enable_if_t<internal::is_tuple_v<Tuple>, bool>>
     inline std::optional<Tuple> deserializer<Wire>::to() noexcept
     {
-        return to_impl(utils::type_identity<Tuple>{});
+        return to_impl(internal::type_identity<Tuple>{});
     }
 
     template<endianness Wire>
     template<typename T, std::enable_if_t<
         std::is_trivially_copyable_v<T> &&
         !std::is_array_v<T> &&
-        !utils::is_tuple_v<T>, bool>
+        !internal::is_tuple_v<T>, bool>
     >
     inline std::optional<T> deserializer<Wire>::to() noexcept
     {
@@ -57,7 +57,7 @@ namespace eser::flat{
 
     template<endianness Wire>
     template<typename... Es>
-    inline std::optional<std::tuple<Es...>> deserializer<Wire>::to_impl(utils::type_identity<std::tuple<Es...>>) noexcept
+    inline std::optional<std::tuple<Es...>> deserializer<Wire>::to_impl(internal::type_identity<std::tuple<Es...>>) noexcept
     {
         static_assert(sizeof...(Es) > 0, "Cannot deserialize an empty std::tuple<>; name at least one field");
         constexpr std::size_t bytes_required = (sizeof(Es) + ...);
@@ -90,7 +90,7 @@ namespace eser::flat{
         }
         _data += sizeof(T);
         _length -= sizeof(T);
-        utils::apply_wire_endianness<Wire>(value); // convert from wire order to host order
+        internal::apply_wire_endianness<Wire>(value); // convert from wire order to host order
         return value;
     }
 

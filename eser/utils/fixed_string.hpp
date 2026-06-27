@@ -35,7 +35,7 @@
 #define ESER_UTILS_FIXED_STRING_HPP_
 #include <cstddef>
 #include <string_view>
-#include "traits.hpp"
+#include "endianness.hpp"   // for is_endianness_neutral (specialized below)
 
 namespace eser::utils{
     /**

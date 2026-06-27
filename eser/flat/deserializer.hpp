@@ -43,8 +43,8 @@
 */
 #ifndef ESER_FLAT_DESERIALIZER_HPP_
 #define ESER_FLAT_DESERIALIZER_HPP_
-#include "../utils/byte.hpp"
-#include "../utils/traits.hpp"
+#include "../internal/byte.hpp"
+#include "../internal/traits.hpp"
 #include "../utils/endianness.hpp"
 #include <cstddef>
 #include <cstdint>
@@ -103,7 +103,7 @@ namespace eser::flat{
         * @return `std::nullopt` if the buffer holds fewer than the required bytes
         *         (`sizeof(Es) + ...`); otherwise an engaged optional holding the tuple.
         */
-        template<typename Tuple, std::enable_if_t<utils::is_tuple_v<Tuple>, bool> = true>
+        template<typename Tuple, std::enable_if_t<internal::is_tuple_v<Tuple>, bool> = true>
         [[nodiscard]] std::optional<Tuple> to() noexcept;
 
         /**
@@ -134,7 +134,7 @@ namespace eser::flat{
         template<typename T, std::enable_if_t<
             std::is_trivially_copyable_v<T> &&
             !std::is_array_v<T> &&
-            !utils::is_tuple_v<T>, bool> = true>
+            !internal::is_tuple_v<T>, bool> = true>
         [[nodiscard]] std::optional<T> to() noexcept;
 
         
@@ -179,7 +179,7 @@ namespace eser::flat{
         * @return `std::nullopt` if the buffer is too short; otherwise the engaged tuple.
         */
         template<typename... Es>
-        std::optional<std::tuple<Es...>> to_impl(utils::type_identity<std::tuple<Es...>>) noexcept;
+        std::optional<std::tuple<Es...>> to_impl(internal::type_identity<std::tuple<Es...>>) noexcept;
 
         /**
         * @brief Construct a deserializer.

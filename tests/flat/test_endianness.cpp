@@ -19,7 +19,7 @@ TEST_CASE("host_endianness matches a runtime probe") {
     std::uint16_t one = 1;
     const auto* bytes = reinterpret_cast<const unsigned char*>(&one);
     const bool host_is_little = (bytes[0] == 1);
-    REQUIRE((eser::utils::host_endianness == endianness::little) == host_is_little);
+    REQUIRE((eser::internal::host_endianness == endianness::little) == host_is_little);
 }
 
 TEST_CASE("big-endian serialization writes most-significant byte first") {
