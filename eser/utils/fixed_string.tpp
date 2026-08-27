@@ -18,6 +18,7 @@
 #ifndef ESER_UTILS_FIXED_STRING_TPP_
 #define ESER_UTILS_FIXED_STRING_TPP_
 #include "fixed_string.hpp"
+#include "../internal/constexpr_assert.hpp"
 #include <cassert>
 
 namespace eser::utils{
@@ -27,7 +28,7 @@ namespace eser::utils{
     template<std::size_t N>
     constexpr fixed_string<N>::fixed_string(std::string_view source) noexcept : _data{}
     {
-        assert(source.size() <= N and "fixed_string: source longer than capacity N; it is truncated");
+        ESER_CONSTEXPR_ASSERT(source.size() <= N and "fixed_string: source longer than capacity N; it is truncated");
         const std::size_t count = source.size() < N ? source.size() : N;
         for (std::size_t i = 0; i < count; ++i) _data[i] = source[i];
     }

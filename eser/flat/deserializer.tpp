@@ -29,6 +29,7 @@
 #ifndef ESER_FLAT_DESERIALIZER_TPP_
 #define ESER_FLAT_DESERIALIZER_TPP_
 #include "deserializer.hpp"
+#include "../internal/constexpr_assert.hpp"
 #include "../internal/endianness.hpp"
 #include <cassert>
 #include <utility>
@@ -103,7 +104,7 @@ namespace eser::flat{
     template<endianness Wire>
     constexpr deserializer<Wire> deserialize(const std::byte *data, std::size_t length)
     {
-        assert(data != nullptr && "Data pointer is null");
+        ESER_CONSTEXPR_ASSERT(data != nullptr && "Data pointer is null");
         return deserializer<Wire>(data, length);
     }
     template<endianness Wire>
