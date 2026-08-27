@@ -1,0 +1,58 @@
+{
+  "$schema": "https://raw.githubusercontent.com/platformio/platformio-core/develop/platformio/assets/schema/library.json",
+  "name": "eser",
+  "version": "1.1.0",
+  "description": "Header-only C++17 serialization for embedded targets: turns trivially-copyable values into compact, fixed-layout byte streams and back, with the size of every message known at compile time. No allocation, no reflection, no tags on the wire.",
+  "keywords": [
+    "serialization",
+    "deserialization",
+    "binary",
+    "endianness",
+    "embedded",
+    "esp32",
+    "esp8266",
+    "header-only"
+  ],
+  "homepage": "https://github.com/MarikTik/eser",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MarikTik/eser.git"
+  },
+  "authors": [
+    {
+      "name": "Mark Tikhonov",
+      "email": "mtik.philosopher@gmail.com",
+      "maintainer": true
+    }
+  ],
+  "license": "MIT",
+  "frameworks": "*",
+  "platforms": "*",
+  "headers": [
+    "eser/eser.hpp"
+  ],
+  "build": {
+    "srcDir": ".",
+    "srcFilter": [
+      "-<*>"
+    ],
+    "flags": [
+      "-std=gnu++17"
+    ],
+    "libArchive": false
+  },
+  "export": {
+    "include": [
+      "eser/**",
+      "library.json",
+      "LICENSE",
+      "README.md"
+    ],
+    "exclude": [
+      "build/**",
+      "tests/**",
+      "tools/**",
+      "project/**"
+    ]
+  }
+}
