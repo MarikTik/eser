@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/platformio/platformio-core/develop/platformio/assets/schema/library.json",
   "name": "eser",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Header-only C++17 serialization for embedded targets: turns trivially-copyable values into compact, fixed-layout byte streams and back, with the size of every message known at compile time. No allocation, no reflection, no tags on the wire.",
   "keywords": [
     "serialization",
