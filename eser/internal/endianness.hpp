@@ -11,7 +11,9 @@
 *
 * @note C++17 has no `std::endian`, so the host order is detected from `__BYTE_ORDER__`
 *       (GCC/Clang) with an MSVC fallback (its targets are little-endian) and a final
-*       `ESER_FORCE_ENDIANNESS_LITTLE` / `ESER_FORCE_ENDIANNESS_BIG` escape hatch.
+*       `ESER_FORCE_ENDIANNESS_LITTLE` / `ESER_FORCE_ENDIANNESS_BIG` escape hatch for toolchains
+*       that expose neither. Those macros are a last-resort fallback, never an override -- see the
+*       warning on @ref host_endianness before reaching for one.
 *
 * @author Mark Tikhonov <mtik.philosopher@gmail.com>
 *
@@ -25,6 +27,12 @@
 * - 2026-06-24
 * -     Initial creation (split from eser/utils/endianness.hpp): host detection plus the
 *       `reverse_bytes` / `apply_wire_endianness` conversion helpers.
+* - 2026-08-27
+* -     Diagnose a contradicting `ESER_FORCE_ENDIANNESS_*` instead of ignoring it. The macros are
+*       tested after `__BYTE_ORDER__` and `_MSC_VER`, so on every toolchain that reports its byte
+*       order they had no effect and gave no sign of it; defining one that disagrees with the
+*       detected host, or defining both, is now a `#error`. Documented them as a fallback for
+*       undetectable toolchains rather than an override. No change to detection or codegen.
 */
 #ifndef ESER_INTERNAL_ENDIANNESS_HPP_
 #define ESER_INTERNAL_ENDIANNESS_HPP_
@@ -41,18 +49,45 @@ namespace eser::internal{
     * @var host_endianness
     * @brief The byte order of the machine this translation unit is compiled for.
     *
-    * Detected from `__BYTE_ORDER__` when available, with an MSVC fallback and a
-    * `ESER_FORCE_ENDIANNESS_LITTLE` / `ESER_FORCE_ENDIANNESS_BIG` override of last resort.
+    * Detected from `__BYTE_ORDER__` when available, then from `_MSC_VER` (whose targets are all
+    * little-endian). `ESER_FORCE_ENDIANNESS_LITTLE` / `ESER_FORCE_ENDIANNESS_BIG` are consulted
+    * only when both of those fail, as a way to build on a toolchain that exposes neither.
+    *
+    * @warning These macros are a **fallback for undetectable toolchains, not an override**. They
+    *          are deliberately tested last, so on GCC, Clang, MSVC and every toolchain that
+    *          defines `__BYTE_ORDER__` they have no effect whatsoever. Defining one to make a
+    *          little-endian host behave as big-endian will not work, and is not supported: it
+    *          would make @ref reverse_bytes swap on a machine that is not actually big-endian,
+    *          silently producing wrong values rather than emulating a big-endian host. To exercise
+    *          the big-endian *wire* path, pass `endianness::big` as the `Wire` template argument
+    *          -- that is fully supported and works on any host. To exercise a big-endian *host*,
+    *          build under an emulator for a big-endian target.
     */
+    #if defined(ESER_FORCE_ENDIANNESS_LITTLE) && defined(ESER_FORCE_ENDIANNESS_BIG)
+        #error "[eser] ESER_FORCE_ENDIANNESS_LITTLE and ESER_FORCE_ENDIANNESS_BIG are both defined; define at most one"
+    #endif
+
     #if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) && defined(__ORDER_BIG_ENDIAN__)
+        // A forcing macro here would be ignored, because the host order is already known. Say so
+        // rather than silently building with the detected order: a user who defined one is trying
+        // to change behaviour and would otherwise get no sign that nothing happened.
         #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+            #if defined(ESER_FORCE_ENDIANNESS_BIG)
+                #error "[eser] ESER_FORCE_ENDIANNESS_BIG was defined, but this toolchain reports a little-endian host via __BYTE_ORDER__ and the macro would be ignored. It is a fallback for toolchains that cannot be detected, not an override: remove it, and select a big-endian *wire* with serialize<endianness::big>(...) / deserialize<endianness::big>(...) instead."
+            #endif
             inline constexpr endianness host_endianness = endianness::little;
         #elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+            #if defined(ESER_FORCE_ENDIANNESS_LITTLE)
+                #error "[eser] ESER_FORCE_ENDIANNESS_LITTLE was defined, but this toolchain reports a big-endian host via __BYTE_ORDER__ and the macro would be ignored. It is a fallback for toolchains that cannot be detected, not an override: remove it, and select a little-endian *wire* with serialize<endianness::little>(...) / deserialize<endianness::little>(...) instead."
+            #endif
             inline constexpr endianness host_endianness = endianness::big;
         #else
             #error "[eser] unsupported __BYTE_ORDER__ (PDP/mixed endianness is not supported)"
         #endif
     #elif defined(_MSC_VER)
+        #if defined(ESER_FORCE_ENDIANNESS_BIG)
+            #error "[eser] ESER_FORCE_ENDIANNESS_BIG was defined, but MSVC targets are little-endian and the macro would be ignored. It is a fallback for toolchains that cannot be detected, not an override: remove it, and select a big-endian *wire* with serialize<endianness::big>(...) / deserialize<endianness::big>(...) instead."
+        #endif
         // MSVC only targets little-endian architectures (x86, x64, ARM/ARM64 in LE mode).
         inline constexpr endianness host_endianness = endianness::little;
     #elif defined(ESER_FORCE_ENDIANNESS_LITTLE)
