@@ -43,6 +43,7 @@ if (auto fields = deserialize(buffer).to<std::tuple<std::uint32_t, float>>()) {
 - [Buffer Sizing](#buffer-sizing)
 - [Edge Cases & Behavior](#edge-cases--behavior)
 - [Assumptions & Limitations](#assumptions--limitations)
+- [Benchmarks](#benchmarks)
 - [When to Use eser (and When Not To)](#when-to-use-eser-and-when-not-to)
 - [Thread Safety](#thread-safety)
 - [Testing](#testing)
@@ -503,6 +504,136 @@ this section before putting it on a wire you do not control on both sides.
 10. **No allocation, no exceptions, no RTTI.** Errors surface as `std::optional` (reads) or a `0`
     return / debug `assert` (writes), never as throws.
 11. **Single-threaded per instance.** See [Thread Safety](#thread-safety).
+
+---
+
+## Benchmarks
+
+All figures below were measured on this library at v1.1.1 with the harness in [`bench/`](bench/).
+Nothing is estimated. Reproduce with `python3 bench/scripts/measure.py`; the raw records are in
+`bench/RESULTS.md`.
+
+### How it is measured
+
+Footprint is measured as a **ladder of feature tiers**, all compiled from one translation unit with
+the tier selected by `-D BENCH_TIER=n`. Tier 0 includes no eser at all and establishes the floor
+(a bare Arduino sketch is already 8–364 KB depending on platform); every later tier adds exactly one
+codec path. The difference between consecutive tiers is that path's incremental cost.
+
+Three build modes are measured, because eser's runtime contracts are `assert`-based and therefore
+exist **only** while `NDEBUG` is undefined:
+
+| Mode | Flags | Meaning |
+|---|---|---|
+| `rel` | `-Os -DNDEBUG` | what ships; asserts compiled out |
+| `relO2` | `-O2 -DNDEBUG` | speed-optimized release |
+| `dbg` | `-Og` | asserts live |
+
+Sizes come from the firmware ELF via the toolchain's own `size` tool (`flash` = text + rodata +
+data, `ram` = data + bss), not from build-summary output. The harness verifies that the intended
+`-O` level and `NDEBUG` state actually reached the compile line, and refuses to report numbers
+silently produced under different flags.
+
+### Flash cost — the whole codec
+
+Tier 0 → tier 6: scalars, arrays, big-endian wire, `fixed_string`, and structs, all instantiated.
+
+| Target | Core | `rel` | `relO2` | `dbg` |
+|---|---|---|---|---|
+| STM32F411 | Cortex-M4 | **564 B** | 564 B | 3364 B |
+| ESP8266 | Xtensa LX106 | **888 B** | 888 B | 3044 B |
+| ESP32 | Xtensa LX6 | **1024 B** | 1024 B | 2540 B |
+| ESP32-S3 | Xtensa LX7 | **1044 B** | 1044 B | 2568 B |
+| Arduino Nano | AVR | — | — | *does not build, see below* |
+
+**RAM cost is 0 bytes** on every target and every mode. eser allocates nothing; the only RAM in the
+benchmark is the caller's own buffer.
+
+**Including `eser.hpp` without instantiating anything costs exactly 0 bytes**, on every target and
+mode measured — tier 1 is byte-identical to tier 0.
+
+Cortex-M is the cheapest target at roughly half the Xtensa cost, consistent with Thumb-2 being a
+denser encoding for load/store-heavy code. Debug builds cost 2.5–6× the shipping footprint; that is
+the price of the `assert` contracts, and it disappears under `NDEBUG`.
+
+### Per-feature cost (ESP32, `-Os -DNDEBUG`)
+
+| Tier | Adds | Δ flash |
+|---|---|---|
+| 1 | `#include "eser/eser.hpp"`, nothing used | **+0 B** |
+| 2 | scalar codec, native wire | +208 B |
+| 3 | array codec (C array and `std::array`) | +100 B |
+| 4 | big-endian wire | +336 B |
+| 5 | `fixed_string` | +264 B |
+| 6 | trivially-copyable struct | +116 B |
+
+The big-endian tier is the most expensive on every board — it is the only one that adds real
+per-field work rather than another `memcpy` shape.
+
+### Runtime cost
+
+Measured on hardware, `-O2`, 20000 iterations per case, with a calibration loop of identical shape
+subtracted so the figure is the codec's marginal cost rather than loop scaffolding.
+
+| Case | ESP32 @240MHz | ESP32-S3 @240MHz | ESP8266 @80MHz | Wire |
+|---|---|---|---|---|
+| serialize 3 scalars (native) | 274.5 ns | 235.7 ns | 1139.1 ns | 10 B |
+| serialize 3 scalars (big-endian) | 475.9 ns | 425.4 ns | 1538.8 ns | 10 B |
+| deserialize 3 scalars (native) | 118.3 ns | 113.8 ns | 950.9 ns | 10 B |
+| deserialize 3 scalars (big-endian) | 408.0 ns | 378.4 ns | 1538.5 ns | 10 B |
+| serialize `array<uint16,8>` | 369.8 ns | 332.2 ns | 1200.4 ns | 16 B |
+| serialize `u32 + fixed_string<16>` | 378.2 ns | 390.7 ns | 1000.4 ns | 20 B |
+| serialize struct (raw image) | 181.1 ns | 189.4 ns | 587.9 ns | 16 B |
+
+A non-native wire roughly doubles scalar cost on the ESP32. The penalty is proportionally smaller
+on the ESP8266 (+35% vs +73%), where fixed call and `memcpy` overhead dominates the slower core.
+
+### Abstraction cost
+
+The claim that a native-endian wire is free cannot be settled by a size table, so it is checked
+against the disassembly: the same three fields written by hand with `memcpy`, versus through
+`serialize(...)`.
+
+| Target | hand-written `memcpy` | eser, native wire | eser, swapped wire |
+|---|---|---|---|
+| x86-64 `-O2` | 7 instructions | **7 instructions** | 21 instructions |
+| Xtensa LX6 `-O2` | 24 instructions | 27 instructions | 31 instructions |
+
+On x86-64 the native path is instruction-for-instruction identical to hand-written `memcpy` — the
+templates, the tuple, and the `std::apply` fold compile away entirely.
+
+On Xtensa it is **3 instructions longer**, and that gap is not un-eliminated overhead: it is eser's
+runtime buffer-capacity check, which the bare `memcpy` reference does not perform. The accurate
+cross-platform statement is therefore *"within 3 instructions of hand-written, and the difference
+is a bounds check"* — not an unqualified zero-cost claim.
+
+Run it yourself with `bench/scripts/codegen.sh [host|xtensa|arm]`.
+
+### Platform support
+
+eser **does not build for AVR** (Arduino Nano / ATmega328P). The obstacle is not the language
+standard: `avr-g++` accepts `-std=gnu++17` and compiles `if constexpr` fine. It is that avr-gcc
+ships **no libstdc++ headers at all** — `<type_traits>`, `<optional>`, `<tuple>`, `<array>`,
+`<cstddef>`, `<cstring>`, `<limits>` and `<cstdint>` are all absent. eser depends on several of
+these, so the build fails at the first include. A bare framework sketch still compiles, confirming
+the toolchain itself works.
+
+Supporting AVR would mean vendoring replacements for the missing standard library, which is a
+separate undertaking rather than a build flag. Third-party shims (ArduinoSTL, avr-stl) cover parts
+of the library but none supplies a C++17-conformant `std::optional`.
+
+### Caveats
+
+- **One measurement target can cover several boards.** ESP32 devkit, WROOM-32 and WROOM-32U are the
+  same ESP32-D0WD die and produce byte-identical firmware; WROOM-32U differs only by its U.FL
+  external-antenna connector. NodeMCU v2 and v3 likewise share one PlatformIO target.
+- **STM32 runtime was not measured** — no such board was on hand. Its footprint figures are real;
+  its per-call cost is unknown.
+- **`rel` and `relO2` sizes being identical is genuine**, not a flag error: the binaries differ
+  (`cmp`), and both flag sets were verified as reaching the compiler. eser's contribution is small
+  enough that `-Os` and `-O2` inline the same stores.
+- **Numbers are specific to these toolchain versions** and to the benchmark's own field mix. Treat
+  them as an order-of-magnitude guide for your own schema, not a guarantee.
 
 ---
 
